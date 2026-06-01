@@ -1,0 +1,101 @@
+name: Release
+
+# Publishes to PyPI and creates a GitHub Release when a v* tag is pushed.
+# Uses PyPI Trusted Publishing (OIDC) — no API token secret is required.
+# Configure the trusted publisher once at:
+#   https://pypi.org/manage/project/langchain-zerogpu/settings/publishing/
+#   (workflow: release.yml, environment: pypi)
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build distributions
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.12"
+
+      - name: Verify tag matches pyproject version
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          PKG_VERSION="$(uv version --short)"
+          TAG_VERSION="${GITHUB_REF_NAME#v}"
+          echo "pyproject=$PKG_VERSION tag=$TAG_VERSION"
+          if [ "$PKG_VERSION" != "$TAG_VERSION" ]; then
+            echo "::error::Tag ($TAG_VERSION) does not match pyproject version ($PKG_VERSION)"
+            exit 1
+          fi
+
+      - name: Verify CHANGELOG has an entry for this version
+        run: |
+          PKG_VERSION="$(uv version --short)"
+          if ! grep -q "^## \[$PKG_VERSION\]" CHANGELOG.md; then
+            echo "::error::CHANGELOG.md is missing a '## [$PKG_VERSION]' section"
+            exit 1
+          fi
+
+      - name: Build wheel + sdist
+        run: uv build
+
+      - name: Check distribution metadata
+        run: uvx twine check dist/*
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+  publish-pypi:
+    name: Publish to PyPI
+    needs: build
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+    environment:
+      name: pypi
+      url: https://pypi.org/p/langchain-zerogpu
+    permissions:
+      id-token: write # required for PyPI Trusted Publishing (OIDC)
+    steps:
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+
+  github-release:
+    name: Create GitHub Release
+    needs: publish-pypi
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+    permissions:
+      contents: write # required to create a release
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: ${{ github.ref_name }}
+          generate_release_notes: true
+          files: dist/*
