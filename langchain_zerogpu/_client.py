@@ -24,8 +24,9 @@ import os
 import typing as t
 
 from pydantic import SecretStr
-from zerogpu import AsyncZerogpuApi, ChatMessage, ZerogpuApi
+from zerogpu import AsyncZerogpuApi, ZerogpuApi
 from zerogpu.core.api_error import ApiError
+from zerogpu.types.input_message import InputMessage
 
 API_KEY_ENV = "ZEROGPU_API_KEY"
 """Environment variable read when no ``api_key`` is passed explicitly."""
@@ -235,20 +236,6 @@ class ZeroGPUClient:
                     return text
         raise ZeroGPUError("ZeroGPU returned an empty response.")
 
-    @staticmethod
-    def _chat_text(response: t.Any) -> str:
-        """Extract the assistant message content from a Chat API result."""
-        choices = getattr(response, "choices", None) or []
-        if choices:
-            message = (
-                choices[0].get("message") if isinstance(choices[0], dict) else None
-            )
-            if isinstance(message, dict):
-                content = message.get("content")
-                if isinstance(content, str) and content:
-                    return content
-        raise ZeroGPUError("ZeroGPU returned an empty chat response.")
-
     # -- request helpers -----------------------------------------------------
 
     @staticmethod
@@ -259,19 +246,40 @@ class ZeroGPUClient:
             return {"additional_body_parameters": additional_body}
         return None
 
+    @staticmethod
+    def _responses_input(text: str, system: str | None) -> str | list[InputMessage]:
+        """Build the Responses API ``input``.
+
+        Without a system prompt the passage is sent as a plain string. When a
+        system prompt is supplied it is carried as a system/user message pair so
+        chat-style tools can run through the Responses API too.
+        """
+        if not system:
+            return text
+        return [
+            InputMessage(role="system", content=system),
+            InputMessage(role="user", content=text),
+        ]
+
     def responses(
         self,
         *,
         model: str,
         text: str,
+        system: str | None = None,
         metadata: dict[str, t.Any] | None = None,
         additional_body: dict[str, t.Any] | None = None,
     ) -> str:
         """Call ``POST /v1/responses`` synchronously and return output text.
 
+        Every tool in the package routes through this endpoint. The passage is
+        sent as the request ``input``; when ``system`` is supplied (chat-style
+        tools) the input becomes a system/user message pair instead of a string.
+
         Args:
             model: ZeroGPU model identifier.
-            text: The input passage (sent as the request ``input`` string).
+            text: The input passage / user message.
+            system: Optional system prompt, carried as a system message.
             metadata: Optional model-specific metadata (e.g. GLiNER ``usecase``,
                 ``schema``, ``labels``, ``threshold``, ``mask``).
             additional_body: Optional top-level body fields injected via the
@@ -281,7 +289,10 @@ class ZeroGPUClient:
         Returns:
             The first output text block.
         """
-        kwargs: dict[str, t.Any] = {"model": model, "input": text}
+        kwargs: dict[str, t.Any] = {
+            "model": model,
+            "input": self._responses_input(text, system),
+        }
         if metadata:
             kwargs["metadata"] = metadata
         options = self._request_options(additional_body)
@@ -298,11 +309,15 @@ class ZeroGPUClient:
         *,
         model: str,
         text: str,
+        system: str | None = None,
         metadata: dict[str, t.Any] | None = None,
         additional_body: dict[str, t.Any] | None = None,
     ) -> str:
         """Async counterpart of :meth:`responses`."""
-        kwargs: dict[str, t.Any] = {"model": model, "input": text}
+        kwargs: dict[str, t.Any] = {
+            "model": model,
+            "input": self._responses_input(text, system),
+        }
         if metadata:
             kwargs["metadata"] = metadata
         options = self._request_options(additional_body)
@@ -313,51 +328,3 @@ class ZeroGPUClient:
         except Exception as err:  # noqa: BLE001 - re-raised as mapped error
             raise self._map_error(err) from err
         return self._response_text(response)
-
-    def _chat_messages(self, text: str, system: str | None) -> list[ChatMessage]:
-        messages: list[ChatMessage] = []
-        if system:
-            messages.append(ChatMessage(role="system", content=system))
-        messages.append(ChatMessage(role="user", content=text))
-        return messages
-
-    def chat(
-        self,
-        *,
-        model: str,
-        text: str,
-        system: str | None = None,
-    ) -> str:
-        """Call ``POST /v1/chat/completions`` synchronously and return content.
-
-        Args:
-            model: ZeroGPU chat model identifier.
-            text: The user message.
-            system: Optional system prompt prepended to the conversation.
-
-        Returns:
-            The assistant message content.
-        """
-        try:
-            response = self.sync_client.chat.create_chat_completion(
-                model=model, messages=self._chat_messages(text, system)
-            )
-        except Exception as err:  # noqa: BLE001 - re-raised as mapped error
-            raise self._map_error(err) from err
-        return self._chat_text(response)
-
-    async def achat(
-        self,
-        *,
-        model: str,
-        text: str,
-        system: str | None = None,
-    ) -> str:
-        """Async counterpart of :meth:`chat`."""
-        try:
-            response = await self.async_client.chat.create_chat_completion(
-                model=model, messages=self._chat_messages(text, system)
-            )
-        except Exception as err:  # noqa: BLE001 - re-raised as mapped error
-            raise self._map_error(err) from err
-        return self._chat_text(response)

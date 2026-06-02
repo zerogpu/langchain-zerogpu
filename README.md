@@ -1,11 +1,18 @@
 # langchain-zerogpu
 
-LangChain tools for [ZeroGPU](https://zerogpu.ai) nano-model tasks.
+LangChain tools for [ZeroGPU](https://zerogpu.ai).
 
-This package exposes ZeroGPU's small/nano task models as first-class LangChain
+ZeroGPU is a compute-efficient inference provider for apps and agents. We run
+purpose-built small and nano language models across an edge network for the
+high-volume tasks you run constantly — classification, extraction, moderation,
+routing, summarization — at ~10x lower latency and 50%+ lower cost than
+frontier-model workflows. Auto-scaling, with zero GPU infrastructure to manage.
+Plug in and you're live.
+
+This package exposes those models as first-class LangChain
 [`BaseTool`](https://python.langchain.com/docs/concepts/tools/) subclasses, so
 any LangChain agent — including `create_agent` and LangGraph graphs — can offload
-cheap, well-scoped NLP tasks (classification, summarization, entity / JSON
+these repeatable NLP tasks (classification, summarization, entity / JSON
 extraction, PII redaction, and short chat) to ZeroGPU instead of spending
 frontier-model tokens.
 
@@ -44,7 +51,7 @@ The API key is stored as a `pydantic.SecretStr` and is never logged.
 | --- | --- | --- |
 | `ZeroGPUChatTool` | `LFM2.5-1.2B-Instruct` | Short single-turn chat reply |
 | `ZeroGPUChatThinkingTool` | `LFM2.5-1.2B-Thinking` | Chat with a visible reasoning trace |
-| `ZeroGPUSummarizeTool` | `llama-3-1-8b-instruct-fast` | Condense a passage |
+| `ZeroGPUSummarizeTool` | `llama-3.1-8b-instruct-fast` | Condense a passage |
 | `ZeroGPUClassifyIABTool` | `zlm-v1-iab-classify-edge` | IAB taxonomy classification |
 | `ZeroGPUClassifyIABEnrichedTool` | `zlm-v1-iab-classify-edge-enriched` | IAB + topics / keywords / intent |
 | `ZeroGPUClassifyZeroShotTool` | `deberta-v3-small` | Zero-shot vs. custom labels |

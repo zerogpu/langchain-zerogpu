@@ -1,8 +1,10 @@
-"""LangChain ``BaseTool`` implementations for ZeroGPU nano-model tasks.
+"""LangChain ``BaseTool`` implementations for ZeroGPU tasks.
 
-Each tool routes a single text-in / structured-out task to a small, cheap
-ZeroGPU model through the official ``zerogpu-api`` SDK. All eleven tools share
-the same credential-resolution and error-handling behaviour via
+Each tool routes a single text-in / structured-out task to a purpose-built
+small or nano ZeroGPU language model through the official ``zerogpu-api`` SDK --
+the repeatable, high-volume work frontier models shouldn't run, at ~10x lower
+latency and 50%+ lower cost. All eleven tools share the same
+credential-resolution and error-handling behaviour via
 :class:`~langchain_zerogpu._client.ZeroGPUClient`.
 
 The classes here mirror the capabilities exposed by the ZeroGPU Claude Code
@@ -37,7 +39,7 @@ from langchain_zerogpu._schemas import (
 
 MODEL_CHAT = "LFM2.5-1.2B-Instruct"
 MODEL_CHAT_THINKING = "LFM2.5-1.2B-Thinking"
-MODEL_SUMMARIZE = "llama-3-1-8b-instruct-fast"
+MODEL_SUMMARIZE = "llama-3.1-8b-instruct-fast"
 MODEL_IAB = "zlm-v1-iab-classify-edge"
 MODEL_IAB_ENRICHED = "zlm-v1-iab-classify-edge-enriched"
 MODEL_ZERO_SHOT = "deberta-v3-small"
@@ -104,7 +106,7 @@ class ZeroGPUChatTool(_BaseZeroGPUTool):
         system: str | None = None,
         run_manager: CallbackManagerForToolRun | None = None,
     ) -> str:
-        return self.client.chat(model=MODEL_CHAT, text=text, system=system)
+        return self.client.responses(model=MODEL_CHAT, text=text, system=system)
 
     async def _arun(
         self,
@@ -112,7 +114,7 @@ class ZeroGPUChatTool(_BaseZeroGPUTool):
         system: str | None = None,
         run_manager: AsyncCallbackManagerForToolRun | None = None,
     ) -> str:
-        return await self.client.achat(model=MODEL_CHAT, text=text, system=system)
+        return await self.client.aresponses(model=MODEL_CHAT, text=text, system=system)
 
 
 class ZeroGPUChatThinkingTool(_BaseZeroGPUTool):
@@ -136,7 +138,9 @@ class ZeroGPUChatThinkingTool(_BaseZeroGPUTool):
         system: str | None = None,
         run_manager: CallbackManagerForToolRun | None = None,
     ) -> str:
-        return self.client.chat(model=MODEL_CHAT_THINKING, text=text, system=system)
+        return self.client.responses(
+            model=MODEL_CHAT_THINKING, text=text, system=system
+        )
 
     async def _arun(
         self,
@@ -144,7 +148,7 @@ class ZeroGPUChatThinkingTool(_BaseZeroGPUTool):
         system: str | None = None,
         run_manager: AsyncCallbackManagerForToolRun | None = None,
     ) -> str:
-        return await self.client.achat(
+        return await self.client.aresponses(
             model=MODEL_CHAT_THINKING, text=text, system=system
         )
 
@@ -152,7 +156,7 @@ class ZeroGPUChatThinkingTool(_BaseZeroGPUTool):
 class ZeroGPUSummarizeTool(_BaseZeroGPUTool):
     """Condense a passage into a short summary.
 
-    Routes to ``llama-3-1-8b-instruct-fast``. Best for passages up to a few
+    Routes to ``llama-3.1-8b-instruct-fast``. Best for passages up to a few
     paragraphs.
     """
 
