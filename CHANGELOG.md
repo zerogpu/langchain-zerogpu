@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.2] - 2026-06-03
+
+Documentation-only release: adds the ZeroGPU logo to the README so it renders
+on the PyPI project page. The library is unchanged since 0.2.1.
+
+### Changed
+
+- `README.md` now opens with the ZeroGPU logo (`assets/logo.png`, referenced
+  by absolute URL so PyPI renders it).
+
 ## [0.2.1] - 2026-06-03
 
 First release published to PyPI. The library is unchanged since 0.2.0 — this
@@ -76,7 +86,8 @@ releases whose notes come straight from this changelog.
 - Clear error messages for authentication (401), access (403), rate-limit
   (429), server (5xx), and network failures.
 
-[Unreleased]: https://github.com/zerogpu/langchain-zerogpu/compare/v0.2.1...HEAD
+[Unreleased]: https://github.com/zerogpu/langchain-zerogpu/compare/v0.2.2...HEAD
+[0.2.2]: https://github.com/zerogpu/langchain-zerogpu/compare/v0.2.1...v0.2.2
 [0.2.1]: https://github.com/zerogpu/langchain-zerogpu/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/zerogpu/langchain-zerogpu/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/zerogpu/langchain-zerogpu/releases/tag/v0.1.0

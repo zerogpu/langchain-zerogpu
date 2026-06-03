@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "langchain-zerogpu"
-version = "0.2.1"
+version = "0.2.2"
 description = "LangChain tools for ZeroGPU: A compute-efficient inference provider for apps and agents — purpose-built small and nano language models on an edge network that run the repeatable tasks frontier models shouldn’t, ~10x faster and 50%+ cheaper. Auto-scaling, with zero GPU infrastructure. Plug in and you’re live."
 readme = "README.md"
 requires-python = ">=3.10,<4.0"
