@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-06-03
+
+First release published to PyPI. The library is unchanged since 0.2.0 — this
+release establishes the automated release pipeline: tagged versions are built,
+published to PyPI via Trusted Publishing (OIDC), and turned into GitHub
+releases whose notes come straight from this changelog.
+
+### Added
+
+- CI `changelog` job that fails pull requests changing package code without a
+  matching `CHANGELOG.md` update.
+
+### Changed
+
+- The `Release` workflow now creates the GitHub release from the matching
+  `## [X.Y.Z]` section of this changelog (titled `langchain-zerogpu X.Y.Z`,
+  with an install block and the built artifacts attached) instead of
+  auto-generated notes, and publishes to PyPI via Trusted Publishing.
+
 ## [0.2.0] - 2026-06-02
 
 ### Changed
@@ -57,6 +76,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Clear error messages for authentication (401), access (403), rate-limit
   (429), server (5xx), and network failures.
 
-[Unreleased]: https://github.com/zerogpu/langchain-zerogpu/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/zerogpu/langchain-zerogpu/compare/v0.2.1...HEAD
+[0.2.1]: https://github.com/zerogpu/langchain-zerogpu/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/zerogpu/langchain-zerogpu/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/zerogpu/langchain-zerogpu/releases/tag/v0.1.0
