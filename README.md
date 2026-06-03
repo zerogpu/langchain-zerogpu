@@ -1,3 +1,9 @@
+<p align="center">
+  <a href="https://zerogpu.ai">
+    <img src="https://raw.githubusercontent.com/zerogpu/langchain-zerogpu/main/assets/logo.png" alt="ZeroGPU" width="128">
+  </a>
+</p>
+
 # langchain-zerogpu
 
 LangChain tools for [ZeroGPU](https://zerogpu.ai).
