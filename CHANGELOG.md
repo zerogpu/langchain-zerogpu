@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Map HTTP `402 Payment Required` from the ZeroGPU API to a clear
+  `ZeroGPUError` ("payment required … check your plan and billing details")
+  instead of the generic "request failed" message.
+
 ## [0.2.0] - 2026-06-02
 
 ### Changed

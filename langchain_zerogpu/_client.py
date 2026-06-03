@@ -211,6 +211,12 @@ class ZeroGPUClient:
                     "not have access to the requested model. Check "
                     f"{PROJECT_ID_ENV} and your model entitlements.{suffix}"
                 )
+            if status == 402:
+                return ZeroGPUError(
+                    "ZeroGPU payment required (402): your quota is exhausted or "
+                    "the project has no balance. Check your plan and billing "
+                    f"details.{suffix}"
+                )
             if status == 429:
                 return ZeroGPUError(
                     "ZeroGPU rate limit exceeded (429): slow down or check your "
