@@ -41,3 +41,29 @@ jobs:
 
       - name: Unit tests (sockets disabled)
         run: uv run pytest --disable-socket tests/unit_tests
+
+  changelog:
+    name: Check CHANGELOG.md updated
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check CHANGELOG.md updated
+        run: |
+          set -euo pipefail
+          BASE_REF="${{ github.base_ref }}"
+          git fetch --no-tags --depth=1 origin "$BASE_REF"
+
+          # Only enforce when package code changed.
+          if git diff --quiet "origin/$BASE_REF" -- langchain_zerogpu/ pyproject.toml; then
+            echo "No package changes — CHANGELOG update not required."
+            exit 0
+          fi
+
+          if git diff --quiet "origin/$BASE_REF" -- CHANGELOG.md; then
+            echo "::error file=CHANGELOG.md::Package files changed but CHANGELOG.md was not updated. Add the changes under '## [Unreleased]' (they become the GitHub release notes at release time)."
+            exit 1
+          fi
+
+          echo "CHANGELOG.md updated."
