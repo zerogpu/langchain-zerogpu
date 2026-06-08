@@ -26,7 +26,7 @@ import typing as t
 from pydantic import SecretStr
 from zerogpu import AsyncZerogpuApi, ZerogpuApi
 from zerogpu.core.api_error import ApiError
-from zerogpu.types.input_message import InputMessage
+from zerogpu.core.parse_error import ParsingError
 
 API_KEY_ENV = "ZEROGPU_API_KEY"
 """Environment variable read when no ``api_key`` is passed explicitly."""
@@ -236,6 +236,33 @@ class ZeroGPUClient:
                     return text
         raise ZeroGPUError("ZeroGPU returned an empty response.")
 
+    @staticmethod
+    def _text_from_body(body: t.Any) -> str:
+        """Extract the first output text block from a raw response body dict.
+
+        Used to recover output when the SDK raises :class:`ParsingError`
+        because the server response shape drifted from the SDK's model (for
+        example, a renamed top-level field). The output blocks themselves are
+        still present and valid, so the text can be read directly.
+        """
+        if isinstance(body, dict):
+            for message in body.get("output") or []:
+                for block in message.get("content") or []:
+                    text = block.get("text")
+                    if isinstance(text, str) and text:
+                        return text
+        raise ZeroGPUError("ZeroGPU returned an empty response.")
+
+    @classmethod
+    def _recover_text(cls, err: ParsingError) -> str:
+        """Recover output text from a :class:`ParsingError` raised on success.
+
+        The SDK raises ``ParsingError`` only after a 2xx response fails schema
+        validation; the body is a completed response whose output is intact, so
+        the text is read from ``err.body`` rather than failing the call.
+        """
+        return cls._text_from_body(err.body)
+
     # -- request helpers -----------------------------------------------------
 
     @staticmethod
@@ -246,20 +273,33 @@ class ZeroGPUClient:
             return {"additional_body_parameters": additional_body}
         return None
 
-    @staticmethod
-    def _responses_input(text: str, system: str | None) -> str | list[InputMessage]:
-        """Build the Responses API ``input``.
+    @classmethod
+    def _build_kwargs(
+        cls,
+        *,
+        model: str,
+        text: str,
+        system: str | None,
+        metadata: dict[str, t.Any] | None,
+        additional_body: dict[str, t.Any] | None,
+    ) -> dict[str, t.Any]:
+        """Assemble the ``create_response`` kwargs shared by sync and async.
 
-        Without a system prompt the passage is sent as a plain string. When a
-        system prompt is supplied it is carried as a system/user message pair so
-        chat-style tools can run through the Responses API too.
+        The passage is always sent as a plain-string ``input``. A ``system``
+        prompt is carried as the Responses API ``instructions`` field (injected
+        as a top-level body parameter), since the endpoint accepts only a
+        string ``input`` and rejects a system/user message list.
         """
-        if not system:
-            return text
-        return [
-            InputMessage(role="system", content=system),
-            InputMessage(role="user", content=text),
-        ]
+        body = dict(additional_body) if additional_body else {}
+        if system:
+            body["instructions"] = system
+        kwargs: dict[str, t.Any] = {"model": model, "input": text}
+        if metadata:
+            kwargs["metadata"] = metadata
+        options = cls._request_options(body or None)
+        if options:
+            kwargs["request_options"] = options
+        return kwargs
 
     def responses(
         self,
@@ -279,7 +319,8 @@ class ZeroGPUClient:
         Args:
             model: ZeroGPU model identifier.
             text: The input passage / user message.
-            system: Optional system prompt, carried as a system message.
+            system: Optional system prompt, carried as the ``instructions``
+                field.
             metadata: Optional model-specific metadata (e.g. GLiNER ``usecase``,
                 ``schema``, ``labels``, ``threshold``, ``mask``).
             additional_body: Optional top-level body fields injected via the
@@ -289,17 +330,17 @@ class ZeroGPUClient:
         Returns:
             The first output text block.
         """
-        kwargs: dict[str, t.Any] = {
-            "model": model,
-            "input": self._responses_input(text, system),
-        }
-        if metadata:
-            kwargs["metadata"] = metadata
-        options = self._request_options(additional_body)
-        if options:
-            kwargs["request_options"] = options
+        kwargs = self._build_kwargs(
+            model=model,
+            text=text,
+            system=system,
+            metadata=metadata,
+            additional_body=additional_body,
+        )
         try:
             response = self.sync_client.responses.create_response(**kwargs)
+        except ParsingError as err:
+            return self._recover_text(err)
         except Exception as err:  # noqa: BLE001 - re-raised as mapped error
             raise self._map_error(err) from err
         return self._response_text(response)
@@ -314,17 +355,17 @@ class ZeroGPUClient:
         additional_body: dict[str, t.Any] | None = None,
     ) -> str:
         """Async counterpart of :meth:`responses`."""
-        kwargs: dict[str, t.Any] = {
-            "model": model,
-            "input": self._responses_input(text, system),
-        }
-        if metadata:
-            kwargs["metadata"] = metadata
-        options = self._request_options(additional_body)
-        if options:
-            kwargs["request_options"] = options
+        kwargs = self._build_kwargs(
+            model=model,
+            text=text,
+            system=system,
+            metadata=metadata,
+            additional_body=additional_body,
+        )
         try:
             response = await self.async_client.responses.create_response(**kwargs)
+        except ParsingError as err:
+            return self._recover_text(err)
         except Exception as err:  # noqa: BLE001 - re-raised as mapped error
             raise self._map_error(err) from err
         return self._response_text(response)

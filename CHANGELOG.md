@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.3] - 2026-06-08
+
+Bug-fix release. Every tool call failed against the current ZeroGPU API
+because of a response-schema mismatch, and chat tools rejected a `system`
+prompt. Both are fixed; no public API changes.
+
+### Fixed
+
+- Tool calls no longer fail when the API response shape drifts from the
+  `zerogpu-api` SDK's model (the server returns `created_at` while the pinned
+  SDK expects `created`). `ZeroGPUClient` now recovers the output text from the
+  response body when the SDK raises `ParsingError` on an otherwise successful
+  (2xx) response, so all tools work again out of the box.
+- The `system` argument on `ZeroGPUChatTool` and `ZeroGPUChatThinkingTool` no
+  longer triggers a `400 invalid_request_error`. The passage is sent as a
+  plain-string `input` and the system prompt is carried as the Responses API
+  `instructions` field, instead of a system/user message list that the
+  endpoint rejects.
+
 ## [0.2.2] - 2026-06-03
 
 Documentation-only release: adds the ZeroGPU logo to the README so it renders
