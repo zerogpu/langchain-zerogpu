@@ -44,6 +44,16 @@ class ChatInput(BaseModel):
     )
 
 
+class DomainInput(BaseModel):
+    """A bare domain name to classify."""
+
+    domain: str = Field(
+        ...,
+        description='The domain name to classify, e.g. "nytimes.com". Send the '
+        "domain only -- no scheme, path, or page content.",
+    )
+
+
 class ZeroShotInput(BaseModel):
     """Input for zero-shot classification against a flat list of labels."""
 

@@ -24,7 +24,7 @@ import os
 import typing as t
 
 from pydantic import SecretStr
-from zerogpu import AsyncZerogpuApi, ZerogpuApi
+from zerogpu import AsyncZerogpuApi, ChatMessage, ZerogpuApi
 from zerogpu.core.api_error import ApiError
 from zerogpu.core.parse_error import ParsingError
 
@@ -113,6 +113,13 @@ def _error_detail(body: t.Any) -> str:
     if isinstance(body, str) and body:
         return body
     return ""
+
+
+def _read(obj: t.Any, key: str) -> t.Any:
+    """Read ``key`` from either a mapping or an object attribute."""
+    if isinstance(obj, dict):
+        return obj.get(key)
+    return getattr(obj, key, None)
 
 
 def maybe_json(text: str) -> t.Any:
@@ -226,32 +233,49 @@ class ZeroGPUClient:
 
     # -- response parsing ----------------------------------------------------
 
-    @staticmethod
-    def _response_text(response: t.Any) -> str:
-        """Extract the first output text block from a Responses API result."""
-        for message in getattr(response, "output", None) or []:
-            for block in getattr(message, "content", None) or []:
-                text = getattr(block, "text", None)
-                if isinstance(text, str) and text:
+    @classmethod
+    def _select_text(cls, items: t.Any) -> str:
+        """Pick the answer text out of a Responses API ``output`` list.
+
+        Reasoning models (``gpt-oss-120b``) prepend a ``reasoning`` item whose
+        block also carries a ``text`` field, so returning the first text block
+        found would hand back the model's scratchpad instead of its answer. The
+        first ``output_text`` block wins; anything that does not tag its block
+        types falls back to the first text outside a reasoning item.
+
+        Items may be SDK models (attribute access) or plain dicts, so that the
+        same selection serves both a parsed response and a raw recovered body.
+        """
+        fallback = ""
+        for item in items or []:
+            item_type = _read(item, "type")
+            for block in _read(item, "content") or []:
+                text = _read(block, "text")
+                if not isinstance(text, str) or not text:
+                    continue
+                if _read(block, "type") == "output_text":
                     return text
+                if not fallback and item_type != "reasoning":
+                    fallback = text
+        if fallback:
+            return fallback
         raise ZeroGPUError("ZeroGPU returned an empty response.")
 
-    @staticmethod
-    def _text_from_body(body: t.Any) -> str:
-        """Extract the first output text block from a raw response body dict.
+    @classmethod
+    def _response_text(cls, response: t.Any) -> str:
+        """Extract the answer text from a Responses API result."""
+        return cls._select_text(getattr(response, "output", None))
+
+    @classmethod
+    def _text_from_body(cls, body: t.Any) -> str:
+        """Extract the answer text from a raw response body dict.
 
         Used to recover output when the SDK raises :class:`ParsingError`
         because the server response shape drifted from the SDK's model (for
         example, a renamed top-level field). The output blocks themselves are
         still present and valid, so the text can be read directly.
         """
-        if isinstance(body, dict):
-            for message in body.get("output") or []:
-                for block in message.get("content") or []:
-                    text = block.get("text")
-                    if isinstance(text, str) and text:
-                        return text
-        raise ZeroGPUError("ZeroGPU returned an empty response.")
+        return cls._select_text(body.get("output") if isinstance(body, dict) else None)
 
     @classmethod
     def _recover_text(cls, err: ParsingError) -> str:
@@ -262,6 +286,30 @@ class ZeroGPUClient:
         the text is read from ``err.body`` rather than failing the call.
         """
         return cls._text_from_body(err.body)
+
+    @staticmethod
+    def _choice_text(choices: t.Any) -> str:
+        """Extract the assistant message text from chat completion choices.
+
+        The SDK models ``choices`` as a list of plain dicts, so the same
+        extraction works for a parsed :class:`ChatCompletionResponse` and for a
+        raw body recovered from a :class:`ParsingError`.
+        """
+        for choice in choices or []:
+            if not isinstance(choice, dict):
+                continue
+            message = choice.get("message")
+            if isinstance(message, dict):
+                content = message.get("content")
+                if isinstance(content, str) and content:
+                    return content
+        raise ZeroGPUError("ZeroGPU returned an empty response.")
+
+    @classmethod
+    def _recover_choice_text(cls, err: ParsingError) -> str:
+        """Recover chat completion text from a ``ParsingError`` raised on 2xx."""
+        body = err.body if isinstance(err.body, dict) else {}
+        return cls._choice_text(body.get("choices"))
 
     # -- request helpers -----------------------------------------------------
 
@@ -369,3 +417,63 @@ class ZeroGPUClient:
         except Exception as err:  # noqa: BLE001 - re-raised as mapped error
             raise self._map_error(err) from err
         return self._response_text(response)
+
+    @staticmethod
+    def _chat_messages(text: str, system: str | None) -> list[ChatMessage]:
+        """Build the message list for a chat completion request."""
+        messages: list[ChatMessage] = []
+        if system:
+            messages.append(ChatMessage(role="system", content=system))
+        messages.append(ChatMessage(role="user", content=text))
+        return messages
+
+    def chat(
+        self,
+        *,
+        model: str,
+        text: str,
+        system: str | None = None,
+    ) -> str:
+        """Call ``POST /v1/chat/completions`` synchronously and return the reply.
+
+        Used by the tools whose model is only served on the OpenAI-compatible
+        Chat Completions endpoint (``qwen3-30b-a3b-fp8``); every other tool
+        routes through :meth:`responses`.
+
+        Args:
+            model: ZeroGPU model identifier.
+            text: The user message.
+            system: Optional system message prepended to the conversation.
+
+        Returns:
+            The assistant message content of the first choice.
+        """
+        messages = self._chat_messages(text, system)
+        try:
+            response = self.sync_client.chat.create_chat_completion(
+                model=model, messages=messages
+            )
+        except ParsingError as err:
+            return self._recover_choice_text(err)
+        except Exception as err:  # noqa: BLE001 - re-raised as mapped error
+            raise self._map_error(err) from err
+        return self._choice_text(response.choices)
+
+    async def achat(
+        self,
+        *,
+        model: str,
+        text: str,
+        system: str | None = None,
+    ) -> str:
+        """Async counterpart of :meth:`chat`."""
+        messages = self._chat_messages(text, system)
+        try:
+            response = await self.async_client.chat.create_chat_completion(
+                model=model, messages=messages
+            )
+        except ParsingError as err:
+            return self._recover_choice_text(err)
+        except Exception as err:  # noqa: BLE001 - re-raised as mapped error
+            raise self._map_error(err) from err
+        return self._choice_text(response.choices)

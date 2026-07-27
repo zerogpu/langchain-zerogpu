@@ -3,7 +3,7 @@
 Each tool routes a single text-in / structured-out task to a purpose-built
 small or nano ZeroGPU language model through the official ``zerogpu-api`` SDK --
 the repeatable, high-volume work frontier models shouldn't run, at ~10x lower
-latency and 50%+ lower cost. All eleven tools share the same
+latency and 50%+ lower cost. All fifteen tools share the same
 credential-resolution and error-handling behaviour via
 :class:`~langchain_zerogpu._client.ZeroGPUClient`.
 
@@ -26,6 +26,7 @@ from pydantic import ConfigDict, Field, SecretStr, model_validator
 from langchain_zerogpu._client import ZeroGPUClient, maybe_json
 from langchain_zerogpu._schemas import (
     ChatInput,
+    DomainInput,
     ExtractEntitiesInput,
     ExtractJSONInput,
     ExtractPIIInput,
@@ -39,9 +40,13 @@ from langchain_zerogpu._schemas import (
 
 MODEL_CHAT = "LFM2.5-1.2B-Instruct"
 MODEL_CHAT_THINKING = "LFM2.5-1.2B-Thinking"
+MODEL_REASON = "gpt-oss-120b"
+MODEL_REASON_MULTILINGUAL = "qwen3-30b-a3b-fp8"
 MODEL_SUMMARIZE = "llama-3.1-8b-instruct-fast"
+MODEL_FOLLOWUP = "zlm-v1-followup-questions-edge"
 MODEL_IAB = "zlm-v1-iab-classify-edge"
-MODEL_IAB_ENRICHED = "zlm-v1-iab-classify-edge-enriched"
+MODEL_IAB_ENRICHED = "zlm-v2-iab-classify-edge-enriched"
+MODEL_IAB_DOMAIN = "zlm-v1-iab-domain-classifier"
 MODEL_ZERO_SHOT = "deberta-v3-small"
 MODEL_GLINER = "gliner2-base-v1"
 MODEL_PII = "gliner-multi-pii-v1"
@@ -153,6 +158,79 @@ class ZeroGPUChatThinkingTool(_BaseZeroGPUTool):
         )
 
 
+class ZeroGPUReasonTool(_BaseZeroGPUTool):
+    """Answer a hard prompt with a large open-weight reasoning model.
+
+    Routes to ``gpt-oss-120b`` (117B parameters, 131K context) over the
+    Responses API. Use when a task needs more reasoning headroom than the nano
+    edge models provide; the returned text is the final answer.
+    """
+
+    name: str = "zerogpu_reason"
+    description: str = (
+        "Answer a prompt that needs real reasoning headroom -- multi-step "
+        "analysis, tricky logic, longer context -- using a large open-weight "
+        "model. Slower and pricier than the nano chat tools, so prefer those "
+        "for simple prompts."
+    )
+    args_schema: type[ChatInput] = ChatInput
+
+    def _run(
+        self,
+        text: str,
+        system: str | None = None,
+        run_manager: CallbackManagerForToolRun | None = None,
+    ) -> str:
+        return self.client.responses(model=MODEL_REASON, text=text, system=system)
+
+    async def _arun(
+        self,
+        text: str,
+        system: str | None = None,
+        run_manager: AsyncCallbackManagerForToolRun | None = None,
+    ) -> str:
+        return await self.client.aresponses(
+            model=MODEL_REASON, text=text, system=system
+        )
+
+
+class ZeroGPUReasonMultilingualTool(_BaseZeroGPUTool):
+    """Reasoning answer in a lighter, multilingual model.
+
+    Routes to ``qwen3-30b-a3b-fp8`` (30.5B parameters, 100+ languages). This
+    model is served on the Chat Completions endpoint only, so it is the one
+    tool that does not use the Responses API.
+    """
+
+    name: str = "zerogpu_reason_multilingual"
+    description: str = (
+        "Answer a prompt that needs reasoning, in any of 100+ languages, using "
+        "a mid-size multilingual model. Prefer this over zerogpu_reason when "
+        "the prompt or the expected answer is not in English."
+    )
+    args_schema: type[ChatInput] = ChatInput
+
+    def _run(
+        self,
+        text: str,
+        system: str | None = None,
+        run_manager: CallbackManagerForToolRun | None = None,
+    ) -> str:
+        return self.client.chat(
+            model=MODEL_REASON_MULTILINGUAL, text=text, system=system
+        )
+
+    async def _arun(
+        self,
+        text: str,
+        system: str | None = None,
+        run_manager: AsyncCallbackManagerForToolRun | None = None,
+    ) -> str:
+        return await self.client.achat(
+            model=MODEL_REASON_MULTILINGUAL, text=text, system=system
+        )
+
+
 class ZeroGPUSummarizeTool(_BaseZeroGPUTool):
     """Condense a passage into a short summary.
 
@@ -180,6 +258,36 @@ class ZeroGPUSummarizeTool(_BaseZeroGPUTool):
         run_manager: AsyncCallbackManagerForToolRun | None = None,
     ) -> str:
         return await self.client.aresponses(model=MODEL_SUMMARIZE, text=text)
+
+
+class ZeroGPUFollowUpQuestionsTool(_BaseZeroGPUTool):
+    """Generate the questions a reader would naturally ask next.
+
+    Routes to ``zlm-v1-followup-questions-edge``, which emits one ready-to-render
+    question per line. The lines are returned as a list of strings.
+    """
+
+    name: str = "zerogpu_followup_questions"
+    description: str = (
+        "Generate a short set of natural follow-up questions a reader would ask "
+        "next about a piece of content (an article, an answer, a chat turn). "
+        "Returns a list of ready-to-render questions."
+    )
+    args_schema: type[TextInput] = TextInput
+
+    def _run(
+        self,
+        text: str,
+        run_manager: CallbackManagerForToolRun | None = None,
+    ) -> list[str]:
+        return _questions(self.client.responses(model=MODEL_FOLLOWUP, text=text))
+
+    async def _arun(
+        self,
+        text: str,
+        run_manager: AsyncCallbackManagerForToolRun | None = None,
+    ) -> list[str]:
+        return _questions(await self.client.aresponses(model=MODEL_FOLLOWUP, text=text))
 
 
 class ZeroGPUClassifyIABTool(_BaseZeroGPUTool):
@@ -239,6 +347,40 @@ class ZeroGPUClassifyIABEnrichedTool(_BaseZeroGPUTool):
     ) -> t.Any:
         return maybe_json(
             await self.client.aresponses(model=MODEL_IAB_ENRICHED, text=text)
+        )
+
+
+class ZeroGPUClassifyDomainTool(_BaseZeroGPUTool):
+    """Classify a bare domain name into the IAB taxonomy.
+
+    Routes to ``zlm-v1-iab-domain-classifier``. Where the page-level IAB tools
+    take the body of an article, this one takes only the domain (for example
+    ``nytimes.com``) and characterises the site as a whole.
+    """
+
+    name: str = "zerogpu_classify_domain"
+    description: str = (
+        'Classify a domain name (e.g. "nytimes.com") into the IAB content '
+        "taxonomy without fetching the page. Returns scored categories, topics, "
+        "keywords, and inferred user intent for the site as a whole. Use the "
+        "page-level IAB tools instead when you have the actual content."
+    )
+    args_schema: type[DomainInput] = DomainInput
+
+    def _run(
+        self,
+        domain: str,
+        run_manager: CallbackManagerForToolRun | None = None,
+    ) -> t.Any:
+        return maybe_json(self.client.responses(model=MODEL_IAB_DOMAIN, text=domain))
+
+    async def _arun(
+        self,
+        domain: str,
+        run_manager: AsyncCallbackManagerForToolRun | None = None,
+    ) -> t.Any:
+        return maybe_json(
+            await self.client.aresponses(model=MODEL_IAB_DOMAIN, text=domain)
         )
 
 
@@ -501,6 +643,18 @@ class ZeroGPUExtractJSONTool(_BaseZeroGPUTool):
         )
 
 
+def _questions(text: str) -> list[str]:
+    """Normalise the follow-up model's output into a list of questions.
+
+    The model returns a JSON array of question strings; the newline-delimited
+    form shown in the docs is accepted as a fallback.
+    """
+    parsed = maybe_json(text)
+    if isinstance(parsed, list):
+        return [str(question).strip() for question in parsed if str(question).strip()]
+    return [line.strip() for line in text.splitlines() if line.strip()]
+
+
 def _gliner_metadata(
     *,
     usecase: str,
@@ -526,9 +680,13 @@ def _gliner_metadata(
 ALL_TOOL_CLASSES: list[type[_BaseZeroGPUTool]] = [
     ZeroGPUChatTool,
     ZeroGPUChatThinkingTool,
+    ZeroGPUReasonTool,
+    ZeroGPUReasonMultilingualTool,
     ZeroGPUSummarizeTool,
+    ZeroGPUFollowUpQuestionsTool,
     ZeroGPUClassifyIABTool,
     ZeroGPUClassifyIABEnrichedTool,
+    ZeroGPUClassifyDomainTool,
     ZeroGPUClassifyZeroShotTool,
     ZeroGPUClassifyStructuredTool,
     ZeroGPUExtractEntitiesTool,

@@ -12,6 +12,7 @@ from langchain_tests.unit_tests import ToolsUnitTests
 from langchain_zerogpu import (
     ZeroGPUChatThinkingTool,
     ZeroGPUChatTool,
+    ZeroGPUClassifyDomainTool,
     ZeroGPUClassifyIABEnrichedTool,
     ZeroGPUClassifyIABTool,
     ZeroGPUClassifyStructuredTool,
@@ -19,6 +20,9 @@ from langchain_zerogpu import (
     ZeroGPUExtractEntitiesTool,
     ZeroGPUExtractJSONTool,
     ZeroGPUExtractPIITool,
+    ZeroGPUFollowUpQuestionsTool,
+    ZeroGPUReasonMultilingualTool,
+    ZeroGPUReasonTool,
     ZeroGPURedactPIITool,
     ZeroGPUSummarizeTool,
 )
@@ -57,6 +61,26 @@ class TestZeroGPUChatThinkingToolUnit(_ZeroGPUToolUnitTests):
         return {"text": "Is 17 prime? Think it through."}
 
 
+class TestZeroGPUReasonToolUnit(_ZeroGPUToolUnitTests):
+    @property
+    def tool_constructor(self) -> type[BaseTool]:
+        return ZeroGPUReasonTool
+
+    @property
+    def tool_invoke_params_example(self) -> dict[str, Any]:
+        return {"text": "Three ways to handle third-party rate limits, one line each."}
+
+
+class TestZeroGPUReasonMultilingualToolUnit(_ZeroGPUToolUnitTests):
+    @property
+    def tool_constructor(self) -> type[BaseTool]:
+        return ZeroGPUReasonMultilingualTool
+
+    @property
+    def tool_invoke_params_example(self) -> dict[str, Any]:
+        return {"text": "¿Cuál es la capital de Japón? Explica brevemente."}
+
+
 class TestZeroGPUSummarizeToolUnit(_ZeroGPUToolUnitTests):
     @property
     def tool_constructor(self) -> type[BaseTool]:
@@ -65,6 +89,16 @@ class TestZeroGPUSummarizeToolUnit(_ZeroGPUToolUnitTests):
     @property
     def tool_invoke_params_example(self) -> dict[str, Any]:
         return {"text": "A long passage that needs condensing into a TL;DR."}
+
+
+class TestZeroGPUFollowUpQuestionsToolUnit(_ZeroGPUToolUnitTests):
+    @property
+    def tool_constructor(self) -> type[BaseTool]:
+        return ZeroGPUFollowUpQuestionsTool
+
+    @property
+    def tool_invoke_params_example(self) -> dict[str, Any]:
+        return {"text": "Most modern EVs offer 250 to 350 miles on a single charge."}
 
 
 class TestZeroGPUClassifyIABToolUnit(_ZeroGPUToolUnitTests):
@@ -85,6 +119,16 @@ class TestZeroGPUClassifyIABEnrichedToolUnit(_ZeroGPUToolUnitTests):
     @property
     def tool_invoke_params_example(self) -> dict[str, Any]:
         return {"text": "A review of the latest electric SUV models for 2026."}
+
+
+class TestZeroGPUClassifyDomainToolUnit(_ZeroGPUToolUnitTests):
+    @property
+    def tool_constructor(self) -> type[BaseTool]:
+        return ZeroGPUClassifyDomainTool
+
+    @property
+    def tool_invoke_params_example(self) -> dict[str, Any]:
+        return {"domain": "nytimes.com"}
 
 
 class TestZeroGPUClassifyZeroShotToolUnit(_ZeroGPUToolUnitTests):

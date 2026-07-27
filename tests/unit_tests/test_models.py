@@ -1,0 +1,54 @@
+"""Pin every tool to the model id published in the ZeroGPU API spec.
+
+Model identifiers are versioned server-side (the enriched IAB classifier moved
+from `zlm-v1-...` to `zlm-v2-...`), and a stale id fails only at request time
+with a 403/404. Pinning them here catches the drift in CI instead.
+"""
+
+from langchain_zerogpu.tools import ALL_TOOL_CLASSES
+
+# Model ids as listed in the `model` enum of the ZeroGPU OpenAPI spec.
+EXPECTED_MODELS = {
+    "zerogpu_chat": "LFM2.5-1.2B-Instruct",
+    "zerogpu_chat_thinking": "LFM2.5-1.2B-Thinking",
+    "zerogpu_reason": "gpt-oss-120b",
+    "zerogpu_reason_multilingual": "qwen3-30b-a3b-fp8",
+    "zerogpu_summarize": "llama-3.1-8b-instruct-fast",
+    "zerogpu_followup_questions": "zlm-v1-followup-questions-edge",
+    "zerogpu_classify_iab": "zlm-v1-iab-classify-edge",
+    "zerogpu_classify_iab_enriched": "zlm-v2-iab-classify-edge-enriched",
+    "zerogpu_classify_domain": "zlm-v1-iab-domain-classifier",
+    "zerogpu_classify_zero_shot": "deberta-v3-small",
+    "zerogpu_classify_structured": "gliner2-base-v1",
+    "zerogpu_extract_entities": "gliner2-base-v1",
+    "zerogpu_extract_pii": "gliner-multi-pii-v1",
+    "zerogpu_redact_pii": "gliner-multi-pii-v1",
+    "zerogpu_extract_json": "gliner2-base-v1",
+}
+
+
+def test_every_tool_has_a_pinned_model() -> None:
+    tool_names = {
+        tool_cls.model_fields["name"].default for tool_cls in ALL_TOOL_CLASSES
+    }
+    assert tool_names == set(EXPECTED_MODELS)
+
+
+def test_model_constants_match_the_api_spec() -> None:
+    from langchain_zerogpu import tools
+
+    assert tools.MODEL_CHAT == EXPECTED_MODELS["zerogpu_chat"]
+    assert tools.MODEL_CHAT_THINKING == EXPECTED_MODELS["zerogpu_chat_thinking"]
+    assert tools.MODEL_REASON == EXPECTED_MODELS["zerogpu_reason"]
+    assert (
+        tools.MODEL_REASON_MULTILINGUAL
+        == EXPECTED_MODELS["zerogpu_reason_multilingual"]
+    )
+    assert tools.MODEL_SUMMARIZE == EXPECTED_MODELS["zerogpu_summarize"]
+    assert tools.MODEL_FOLLOWUP == EXPECTED_MODELS["zerogpu_followup_questions"]
+    assert tools.MODEL_IAB == EXPECTED_MODELS["zerogpu_classify_iab"]
+    assert tools.MODEL_IAB_ENRICHED == EXPECTED_MODELS["zerogpu_classify_iab_enriched"]
+    assert tools.MODEL_IAB_DOMAIN == EXPECTED_MODELS["zerogpu_classify_domain"]
+    assert tools.MODEL_ZERO_SHOT == EXPECTED_MODELS["zerogpu_classify_zero_shot"]
+    assert tools.MODEL_GLINER == EXPECTED_MODELS["zerogpu_classify_structured"]
+    assert tools.MODEL_PII == EXPECTED_MODELS["zerogpu_extract_pii"]
