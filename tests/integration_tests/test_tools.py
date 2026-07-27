@@ -14,6 +14,7 @@ from langchain_tests.integration_tests import ToolsIntegrationTests
 from langchain_zerogpu import (
     ZeroGPUChatThinkingTool,
     ZeroGPUChatTool,
+    ZeroGPUClassifyDomainTool,
     ZeroGPUClassifyIABEnrichedTool,
     ZeroGPUClassifyIABTool,
     ZeroGPUClassifyStructuredTool,
@@ -21,6 +22,9 @@ from langchain_zerogpu import (
     ZeroGPUExtractEntitiesTool,
     ZeroGPUExtractJSONTool,
     ZeroGPUExtractPIITool,
+    ZeroGPUFollowUpQuestionsTool,
+    ZeroGPUReasonMultilingualTool,
+    ZeroGPUReasonTool,
     ZeroGPURedactPIITool,
     ZeroGPUSummarizeTool,
 )
@@ -51,6 +55,26 @@ class TestZeroGPUChatThinkingToolIntegration(ToolsIntegrationTests):
         return {"text": "Is 17 prime? Think it through."}
 
 
+class TestZeroGPUReasonToolIntegration(ToolsIntegrationTests):
+    @property
+    def tool_constructor(self) -> type[BaseTool]:
+        return ZeroGPUReasonTool
+
+    @property
+    def tool_invoke_params_example(self) -> dict[str, Any]:
+        return {"text": "Three ways to handle third-party rate limits, one line each."}
+
+
+class TestZeroGPUReasonMultilingualToolIntegration(ToolsIntegrationTests):
+    @property
+    def tool_constructor(self) -> type[BaseTool]:
+        return ZeroGPUReasonMultilingualTool
+
+    @property
+    def tool_invoke_params_example(self) -> dict[str, Any]:
+        return {"text": "¿Cuál es la capital de Japón? Explica brevemente."}
+
+
 class TestZeroGPUSummarizeToolIntegration(ToolsIntegrationTests):
     @property
     def tool_constructor(self) -> type[BaseTool]:
@@ -63,6 +87,22 @@ class TestZeroGPUSummarizeToolIntegration(ToolsIntegrationTests):
                 "ZeroGPU runs small task models at the edge so that agents can "
                 "offload cheap NLP work instead of spending frontier tokens. "
                 "It supports classification, extraction, summarization and more."
+            )
+        }
+
+
+class TestZeroGPUFollowUpQuestionsToolIntegration(ToolsIntegrationTests):
+    @property
+    def tool_constructor(self) -> type[BaseTool]:
+        return ZeroGPUFollowUpQuestionsTool
+
+    @property
+    def tool_invoke_params_example(self) -> dict[str, Any]:
+        return {
+            "text": (
+                "Electric vehicles are gaining popularity as battery costs drop "
+                "and charging infrastructure expands. Most modern EVs offer 250 "
+                "to 350 miles on a single charge."
             )
         }
 
@@ -85,6 +125,16 @@ class TestZeroGPUClassifyIABEnrichedToolIntegration(ToolsIntegrationTests):
     @property
     def tool_invoke_params_example(self) -> dict[str, Any]:
         return {"text": "A review of the latest electric SUV models for 2026."}
+
+
+class TestZeroGPUClassifyDomainToolIntegration(ToolsIntegrationTests):
+    @property
+    def tool_constructor(self) -> type[BaseTool]:
+        return ZeroGPUClassifyDomainTool
+
+    @property
+    def tool_invoke_params_example(self) -> dict[str, Any]:
+        return {"domain": "nytimes.com"}
 
 
 class TestZeroGPUClassifyZeroShotToolIntegration(ToolsIntegrationTests):

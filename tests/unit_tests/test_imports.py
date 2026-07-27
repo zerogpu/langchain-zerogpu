@@ -5,9 +5,13 @@ from langchain_zerogpu import __all__
 EXPECTED = [
     "ZeroGPUChatTool",
     "ZeroGPUChatThinkingTool",
+    "ZeroGPUReasonTool",
+    "ZeroGPUReasonMultilingualTool",
     "ZeroGPUSummarizeTool",
+    "ZeroGPUFollowUpQuestionsTool",
     "ZeroGPUClassifyIABTool",
     "ZeroGPUClassifyIABEnrichedTool",
+    "ZeroGPUClassifyDomainTool",
     "ZeroGPUClassifyZeroShotTool",
     "ZeroGPUClassifyStructuredTool",
     "ZeroGPUExtractEntitiesTool",
@@ -23,11 +27,11 @@ def test_all_public_names_exported() -> None:
         assert name in __all__, f"{name} missing from __all__"
 
 
-def test_eleven_tool_classes_importable() -> None:
+def test_fifteen_tool_classes_importable() -> None:
     import langchain_zerogpu as pkg
 
     tool_names = [name for name in EXPECTED if name != "ZeroGPUToolkit"]
-    assert len(tool_names) == 11
+    assert len(tool_names) == 15
     for name in tool_names:
         assert hasattr(pkg, name), f"{name} not importable from package root"
 

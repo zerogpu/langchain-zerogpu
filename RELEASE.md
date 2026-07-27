@@ -30,6 +30,15 @@ This project follows [Semantic Versioning](https://semver.org/) and keeps a
 3. Move the relevant notes in **`CHANGELOG.md`** from `[Unreleased]` into a new
    `## [X.Y.Z] - YYYY-MM-DD` section and update the link references at the
    bottom. The release workflow fails if no `## [X.Y.Z]` section exists.
+
+   **This section becomes the GitHub release notes verbatim** (matching the
+   style of [zerogpu-router releases](https://github.com/zerogpu/zerogpu-router/releases)),
+   so write it for readers:
+   - open with a short narrative paragraph saying what the release is about,
+   - follow with the `### Added` / `### Changed` / `### Fixed` subsections with
+     concrete, file-level bullets.
+
+   The workflow appends an `### Install` block automatically — don't add one.
 4. Commit the bump:
    ```bash
    git add pyproject.toml CHANGELOG.md uv.lock
@@ -46,7 +55,9 @@ This project follows [Semantic Versioning](https://semver.org/) and keeps a
      matching section,
    - build the wheel + sdist and run `twine check`,
    - publish to PyPI through the `pypi` environment (OIDC),
-   - create a GitHub Release with the built artifacts attached.
+   - create a GitHub Release titled `langchain-zerogpu X.Y.Z`, with the
+     `## [X.Y.Z]` CHANGELOG section as the notes, an `### Install` block, and
+     the built artifacts attached.
 7. Verify the install:
    ```bash
    pip install --upgrade langchain-zerogpu

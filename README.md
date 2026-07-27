@@ -1,3 +1,9 @@
+<p align="center">
+  <a href="https://zerogpu.ai">
+    <img src="https://raw.githubusercontent.com/zerogpu/langchain-zerogpu/main/assets/logo.png" alt="ZeroGPU" width="128">
+  </a>
+</p>
+
 # langchain-zerogpu
 
 LangChain tools for [ZeroGPU](https://zerogpu.ai).
@@ -13,8 +19,9 @@ This package exposes those models as first-class LangChain
 [`BaseTool`](https://python.langchain.com/docs/concepts/tools/) subclasses, so
 any LangChain agent — including `create_agent` and LangGraph graphs — can offload
 these repeatable NLP tasks (classification, summarization, entity / JSON
-extraction, PII redaction, and short chat) to ZeroGPU instead of spending
-frontier-model tokens.
+extraction, PII redaction, follow-up questions, and chat) to ZeroGPU instead of
+spending frontier-model tokens — plus larger open-weight models for the calls
+that do need reasoning headroom.
 
 All calls go through the official [`zerogpu-api`](https://pypi.org/project/zerogpu-api/)
 Python SDK.
@@ -27,12 +34,13 @@ pip install langchain-zerogpu
 
 ## Authenticate
 
-Every request needs a ZeroGPU **API key** (starts with `zgpu-api-`) and a
-**project id**. Provide them via environment variables:
+Every request needs a ZeroGPU **API key** (starts with `zgpu-api-`). A
+**project id** is optional — set one to scope requests to a specific project.
+Provide them via environment variables:
 
 ```bash
 export ZEROGPU_API_KEY="zgpu-api-..."
-export ZEROGPU_PROJECT_ID="your-project-id"
+export ZEROGPU_PROJECT_ID="your-project-id"   # optional
 ```
 
 …or pass them directly to any tool or the toolkit:
@@ -51,9 +59,13 @@ The API key is stored as a `pydantic.SecretStr` and is never logged.
 | --- | --- | --- |
 | `ZeroGPUChatTool` | `LFM2.5-1.2B-Instruct` | Short single-turn chat reply |
 | `ZeroGPUChatThinkingTool` | `LFM2.5-1.2B-Thinking` | Chat with a visible reasoning trace |
+| `ZeroGPUReasonTool` | `gpt-oss-120b` | Heavier reasoning, 131K context |
+| `ZeroGPUReasonMultilingualTool` | `qwen3-30b-a3b-fp8` | Reasoning across 100+ languages |
 | `ZeroGPUSummarizeTool` | `llama-3.1-8b-instruct-fast` | Condense a passage |
+| `ZeroGPUFollowUpQuestionsTool` | `zlm-v1-followup-questions-edge` | Questions a reader would ask next |
 | `ZeroGPUClassifyIABTool` | `zlm-v1-iab-classify-edge` | IAB taxonomy classification |
-| `ZeroGPUClassifyIABEnrichedTool` | `zlm-v1-iab-classify-edge-enriched` | IAB + topics / keywords / intent |
+| `ZeroGPUClassifyIABEnrichedTool` | `zlm-v2-iab-classify-edge-enriched` | IAB + topics / keywords / intent |
+| `ZeroGPUClassifyDomainTool` | `zlm-v1-iab-domain-classifier` | IAB classification from a domain name |
 | `ZeroGPUClassifyZeroShotTool` | `deberta-v3-small` | Zero-shot vs. custom labels |
 | `ZeroGPUClassifyStructuredTool` | `gliner2-base-v1` | Multi-axis schema classification |
 | `ZeroGPUExtractEntitiesTool` | `gliner2-base-v1` | Custom-label NER |
@@ -82,7 +94,7 @@ result = await tool.ainvoke({"text": "...", "labels": ["a", "b"]})
 
 ## Bind the tools to an agent
 
-Use the toolkit to get all eleven tools — wired to a single shared client — and
+Use the toolkit to get all fifteen tools — wired to a single shared client — and
 bind them to an agent:
 
 ```python

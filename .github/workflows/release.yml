@@ -93,9 +93,50 @@ jobs:
           name: dist
           path: dist/
 
+      - name: Build release notes from CHANGELOG
+        env:
+          VERSION: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          VERSION="${VERSION#v}"
+          NOTES_FILE="$RUNNER_TEMP/release-notes.md"
+
+          # Grab lines from `## [<version>]` (exclusive) up to the next `## ` heading
+          # (exclusive), then strip leading/trailing blank lines. Write directly to a
+          # file so the notes never round-trip through shell interpolation.
+          awk -v ver="$VERSION" '
+            $0 ~ "^## +\\[" ver "\\]" { capture=1; next }
+            capture && /^## / { exit }
+            capture { print }
+          ' CHANGELOG.md \
+            | awk 'NF{found=1} found{print}' \
+            | awk '{lines[NR]=$0} END{n=NR; while(n>0 && lines[n]==""){n--}; for(i=1;i<=n;i++) print lines[i]}' \
+            > "$NOTES_FILE"
+
+          if [ ! -s "$NOTES_FILE" ]; then
+            echo "::error file=CHANGELOG.md::No '## [$VERSION]' section found in CHANGELOG.md"
+            exit 1
+          fi
+
+          {
+            echo ""
+            echo "### Install"
+            echo ""
+            echo '```'
+            echo "pip install -U langchain-zerogpu==$VERSION"
+            echo '```'
+          } >> "$NOTES_FILE"
+
+          echo "NOTES_FILE=$NOTES_FILE" >> "$GITHUB_ENV"
+
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
-        with:
-          name: ${{ github.ref_name }}
-          generate_release_notes: true
-          files: dist/*
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          gh release create "$TAG" \
+            --title "langchain-zerogpu ${TAG#v}" \
+            --notes-file "$NOTES_FILE" \
+            --verify-tag \
+            dist/*

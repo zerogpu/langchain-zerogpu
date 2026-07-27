@@ -1,4 +1,4 @@
-"""Toolkit bundling all eleven ZeroGPU tools behind a single shared client."""
+"""Toolkit bundling all fifteen ZeroGPU tools behind a single shared client."""
 
 from __future__ import annotations
 
@@ -28,7 +28,8 @@ class ZeroGPUToolkit(BaseToolkit):
 
     Args:
         api_key: Explicit API key; falls back to ``ZEROGPU_API_KEY``.
-        project_id: Explicit project id; falls back to ``ZEROGPU_PROJECT_ID``.
+        project_id: Optional project id; falls back to ``ZEROGPU_PROJECT_ID``.
+            Requests are unscoped when neither is set.
         base_url: Optional base URL override for the ZeroGPU API.
     """
 
@@ -41,7 +42,7 @@ class ZeroGPUToolkit(BaseToolkit):
     """Explicit API key; falls back to ``ZEROGPU_API_KEY`` when omitted."""
 
     project_id: str | None = Field(default=None, exclude=True)
-    """Explicit project id; falls back to ``ZEROGPU_PROJECT_ID`` when omitted."""
+    """Optional project id; falls back to ``ZEROGPU_PROJECT_ID`` when omitted."""
 
     base_url: str | None = Field(default=None, exclude=True)
     """Optional base URL override for the ZeroGPU API."""
@@ -60,7 +61,7 @@ class ZeroGPUToolkit(BaseToolkit):
         return data
 
     def get_tools(self) -> list[BaseTool]:
-        """Return all eleven ZeroGPU tools sharing this toolkit's client.
+        """Return all fifteen ZeroGPU tools sharing this toolkit's client.
 
         Returns:
             A list of every ZeroGPU :class:`~langchain_core.tools.BaseTool`,
