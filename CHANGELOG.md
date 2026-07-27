@@ -43,6 +43,9 @@ Both are fixed.
 - `tests/unit_tests/test_models.py`, pinning every tool to the model id listed
   in the API spec's `model` enum so a server-side rename fails in CI rather
   than at request time.
+- HTTP `402 Payment Required` from the ZeroGPU API now maps to a clear
+  `ZeroGPUError` ("payment required … check your plan and billing details")
+  instead of the generic "request failed" message.
 
 ### Changed
 

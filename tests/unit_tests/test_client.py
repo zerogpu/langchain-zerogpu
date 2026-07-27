@@ -2,6 +2,7 @@
 
 import pytest
 from pydantic import SecretStr, ValidationError
+from zerogpu.core.api_error import ApiError
 from zerogpu.core.parse_error import ParsingError
 
 from langchain_zerogpu import (
@@ -82,6 +83,22 @@ def test_tool_missing_credentials_raises(monkeypatch: pytest.MonkeyPatch) -> Non
     with pytest.raises(ValidationError) as exc_info:
         ZeroGPUChatTool()
     assert "ZEROGPU_API_KEY" in str(exc_info.value)
+
+
+# -- error mapping -----------------------------------------------------------
+
+
+def test_map_error_402_payment_required() -> None:
+    err = ZeroGPUClient._map_error(ApiError(status_code=402, body=None))
+    assert isinstance(err, ZeroGPUError)
+    assert not isinstance(err, ZeroGPUAuthError)
+    assert "402" in str(err)
+
+
+def test_map_error_402_includes_body_detail() -> None:
+    body = {"error": {"message": "insufficient_quota"}}
+    err = ZeroGPUClient._map_error(ApiError(status_code=402, body=body))
+    assert "insufficient_quota" in str(err)
 
 
 # -- request construction ----------------------------------------------------
