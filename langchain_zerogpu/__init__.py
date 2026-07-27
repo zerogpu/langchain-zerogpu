@@ -6,10 +6,11 @@ high-volume tasks you run constantly -- classification, extraction, moderation,
 routing, summarization -- at ~10x lower latency and 50%+ lower cost than
 frontier-model workflows.
 
-This package exposes the eleven ZeroGPU task models -- chat, summarization,
-classification, entity / JSON extraction, and PII extraction / redaction -- as
-first-class LangChain :class:`~langchain_core.tools.BaseTool` subclasses, plus a
-:class:`ZeroGPUToolkit` that bundles them behind a single shared client.
+This package exposes the ZeroGPU task models -- chat, reasoning, summarization,
+follow-up questions, classification, entity / JSON extraction, and PII
+extraction / redaction -- as first-class LangChain
+:class:`~langchain_core.tools.BaseTool` subclasses, plus a
+:class:`ZeroGPUToolkit` that bundles all fifteen behind a single shared client.
 """
 
 from __future__ import annotations
@@ -21,6 +22,7 @@ from langchain_zerogpu.toolkit import ZeroGPUToolkit
 from langchain_zerogpu.tools import (
     ZeroGPUChatThinkingTool,
     ZeroGPUChatTool,
+    ZeroGPUClassifyDomainTool,
     ZeroGPUClassifyIABEnrichedTool,
     ZeroGPUClassifyIABTool,
     ZeroGPUClassifyStructuredTool,
@@ -28,6 +30,9 @@ from langchain_zerogpu.tools import (
     ZeroGPUExtractEntitiesTool,
     ZeroGPUExtractJSONTool,
     ZeroGPUExtractPIITool,
+    ZeroGPUFollowUpQuestionsTool,
+    ZeroGPUReasonMultilingualTool,
+    ZeroGPUReasonTool,
     ZeroGPURedactPIITool,
     ZeroGPUSummarizeTool,
 )
@@ -43,9 +48,13 @@ except PackageNotFoundError:  # pragma: no cover - running from a source tree
 __all__ = [
     "ZeroGPUChatTool",
     "ZeroGPUChatThinkingTool",
+    "ZeroGPUReasonTool",
+    "ZeroGPUReasonMultilingualTool",
     "ZeroGPUSummarizeTool",
+    "ZeroGPUFollowUpQuestionsTool",
     "ZeroGPUClassifyIABTool",
     "ZeroGPUClassifyIABEnrichedTool",
+    "ZeroGPUClassifyDomainTool",
     "ZeroGPUClassifyZeroShotTool",
     "ZeroGPUClassifyStructuredTool",
     "ZeroGPUExtractEntitiesTool",

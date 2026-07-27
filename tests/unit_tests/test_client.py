@@ -38,10 +38,30 @@ def test_resolve_api_key_bad_prefix() -> None:
         resolve_api_key("not-a-zgpu-key")
 
 
-def test_resolve_project_id_missing(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_resolve_project_id_from_argument() -> None:
+    assert resolve_project_id(VALID_PROJECT) == VALID_PROJECT
+
+
+def test_resolve_project_id_from_env(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("ZEROGPU_PROJECT_ID", VALID_PROJECT)
+    assert resolve_project_id(None) == VALID_PROJECT
+
+
+def test_resolve_project_id_missing_is_allowed(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # x-project-id is optional in the API spec: an unset project id leaves the
+    # request unscoped rather than failing.
     monkeypatch.delenv("ZEROGPU_PROJECT_ID", raising=False)
-    with pytest.raises(ZeroGPUAuthError):
-        resolve_project_id(None)
+    assert resolve_project_id(None) == ""
+
+
+def test_tool_constructs_without_a_project_id(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.delenv("ZEROGPU_PROJECT_ID", raising=False)
+    tool = ZeroGPUChatTool(api_key=VALID_KEY)
+    assert isinstance(tool.client, ZeroGPUClient)
 
 
 def test_client_does_not_expose_key_in_repr() -> None:
@@ -103,6 +123,33 @@ def test_build_kwargs_merges_instructions_with_additional_body() -> None:
     assert additional_body == {"categories": ["a", "b"]}
 
 
+def test_summarize_routes_through_chat_completions(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # llama-3.1-8b-instruct-fast rejects the Responses API's plain-string
+    # input, so the summarizer must use chat completions -- with the
+    # instruction that keeps it summarizing rather than chatting back.
+    from langchain_zerogpu import ZeroGPUSummarizeTool
+    from langchain_zerogpu.tools import MODEL_SUMMARIZE, SUMMARIZE_INSTRUCTION
+
+    calls: dict[str, object] = {}
+    tool = ZeroGPUSummarizeTool(api_key=VALID_KEY, project_id=VALID_PROJECT)
+
+    def fake_chat(*, model: str, text: str, system: str | None = None) -> str:
+        calls.update(model=model, text=text, system=system)
+        return "a summary"
+
+    def fail_responses(**kwargs: object) -> str:
+        raise AssertionError("summarize must not use the Responses API")
+
+    monkeypatch.setattr(tool.client, "chat", fake_chat)
+    monkeypatch.setattr(tool.client, "responses", fail_responses)
+
+    assert tool.invoke({"text": "a long passage"}) == "a summary"
+    assert calls["model"] == MODEL_SUMMARIZE
+    assert calls["system"] == SUMMARIZE_INSTRUCTION
+
+
 # -- response recovery -------------------------------------------------------
 
 
@@ -116,3 +163,65 @@ def test_recover_text_raises_on_empty_output() -> None:
     err = ParsingError(status_code=200, body={"output": []})
     with pytest.raises(ZeroGPUError):
         ZeroGPUClient._recover_text(err)
+
+
+def test_select_text_skips_the_reasoning_trace() -> None:
+    # gpt-oss-120b emits its scratchpad as the first output item; the answer is
+    # the output_text block that follows.
+    output = [
+        {
+            "type": "reasoning",
+            "content": [{"type": "reasoning_text", "text": "User asks for a color."}],
+        },
+        {
+            "type": "message",
+            "role": "assistant",
+            "content": [{"type": "output_text", "text": "Azure"}],
+        },
+    ]
+    assert ZeroGPUClient._select_text(output) == "Azure"
+
+
+def test_select_text_falls_back_to_untyped_blocks() -> None:
+    output = [{"content": [{"text": "plain"}]}]
+    assert ZeroGPUClient._select_text(output) == "plain"
+
+
+def test_select_text_ignores_a_lone_reasoning_item() -> None:
+    output = [
+        {"type": "reasoning", "content": [{"type": "reasoning_text", "text": "hmm"}]}
+    ]
+    with pytest.raises(ZeroGPUError):
+        ZeroGPUClient._select_text(output)
+
+
+# -- chat completions (qwen3-30b-a3b-fp8) ------------------------------------
+
+
+def test_chat_messages_sends_a_lone_user_turn() -> None:
+    messages = ZeroGPUClient._chat_messages("hello", None)
+    assert [(m.role, m.content) for m in messages] == [("user", "hello")]
+
+
+def test_chat_messages_prepends_the_system_turn() -> None:
+    messages = ZeroGPUClient._chat_messages("hello", "Be brief.")
+    assert [(m.role, m.content) for m in messages] == [
+        ("system", "Be brief."),
+        ("user", "hello"),
+    ]
+
+
+def test_choice_text_reads_the_first_message_content() -> None:
+    choices = [{"index": 0, "message": {"role": "assistant", "content": "hi"}}]
+    assert ZeroGPUClient._choice_text(choices) == "hi"
+
+
+def test_choice_text_raises_on_empty_choices() -> None:
+    with pytest.raises(ZeroGPUError):
+        ZeroGPUClient._choice_text([])
+
+
+def test_recover_choice_text_reads_from_parsing_error_body() -> None:
+    body = {"choices": [{"message": {"role": "assistant", "content": "recovered"}}]}
+    err = ParsingError(status_code=200, body=body)
+    assert ZeroGPUClient._recover_choice_text(err) == "recovered"
