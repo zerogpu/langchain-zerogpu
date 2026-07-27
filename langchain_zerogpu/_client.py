@@ -81,25 +81,21 @@ def resolve_api_key(api_key: str | SecretStr | None) -> SecretStr:
 
 
 def resolve_project_id(project_id: str | None) -> str:
-    """Resolve the ZeroGPU project id.
+    """Resolve the ZeroGPU project id, which is optional.
+
+    The API treats ``x-project-id`` as an optional header that scopes a request
+    to a specific project, so a missing project id is not an error. The pinned
+    SDK types ``project_id`` as a required ``str`` and always sends the header,
+    so "unset" is represented as the empty string -- which the API accepts.
 
     Args:
         project_id: An explicit project id, or ``None`` to fall back to the
             ``ZEROGPU_PROJECT_ID`` environment variable.
 
     Returns:
-        The resolved project id string.
-
-    Raises:
-        ZeroGPUAuthError: If no project id can be found.
+        The resolved project id, or ``""`` when none is configured.
     """
-    raw = project_id if project_id else os.environ.get(PROJECT_ID_ENV)
-    if not raw:
-        raise ZeroGPUAuthError(
-            "No ZeroGPU project id provided. Pass project_id=... or set the "
-            f"{PROJECT_ID_ENV} environment variable."
-        )
-    return raw
+    return project_id or os.environ.get(PROJECT_ID_ENV) or ""
 
 
 def _error_detail(body: t.Any) -> str:
@@ -150,8 +146,8 @@ class ZeroGPUClient:
 
     Args:
         api_key: ZeroGPU API key, or ``None`` to read ``ZEROGPU_API_KEY``.
-        project_id: ZeroGPU project id, or ``None`` to read
-            ``ZEROGPU_PROJECT_ID``.
+        project_id: Optional ZeroGPU project id, or ``None`` to read
+            ``ZEROGPU_PROJECT_ID``. Requests are unscoped when neither is set.
         base_url: Optional override for the API base URL (defaults to the SDK's
             production environment).
         timeout: Optional per-request timeout in seconds.

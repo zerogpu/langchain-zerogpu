@@ -14,6 +14,12 @@ enriched IAB classifier had moved to a `v2` model id that the package was not
 sending. All four are now first-class tools and the stale id is fixed, taking
 the toolkit from eleven tools to fifteen.
 
+The spec also made `x-project-id` optional, so the project id is no longer
+required here either. Testing the new models against the live API turned up two
+bugs on the existing surface: summarization had stopped working entirely, and
+reasoning models would have returned their scratchpad instead of their answer.
+Both are fixed.
+
 ### Added
 
 - `ZeroGPUReasonTool` (`gpt-oss-120b`) — a 117B open-weight model with a 131K
@@ -31,14 +37,29 @@ the toolkit from eleven tools to fifteen.
   `text`, via the new `DomainInput` schema.
 - `ZeroGPUClient.chat()` / `ZeroGPUClient.achat()`, reinstating the Chat
   Completions path (removed in 0.2.0) because `qwen3-30b-a3b-fp8` is not served
-  on `/v1/responses`. Like the Responses path, it recovers the reply from the
-  response body when the SDK raises `ParsingError` on a 2xx.
+  on `/v1/responses`, and `llama-3.1-8b-instruct-fast` is no longer reachable
+  there. Like the Responses path, it recovers the reply from the response body
+  when the SDK raises `ParsingError` on a 2xx.
 - `tests/unit_tests/test_models.py`, pinning every tool to the model id listed
   in the API spec's `model` enum so a server-side rename fails in CI rather
   than at request time.
 
+### Changed
+
+- The project id is now **optional**, matching the API spec, which documents
+  `x-project-id` as an optional header that scopes a request to a project.
+  Constructing a tool or toolkit without `ZEROGPU_PROJECT_ID` no longer raises;
+  requests simply go out unscoped. The API key is still required.
+
 ### Fixed
 
+- `ZeroGPUSummarizeTool` works again. `llama-3.1-8b-instruct-fast` rejects the
+  Responses API's plain-string `input` with `invalid_prompt` ("required
+  properties at '/' are 'prompt' ... 'messages'"), so every summarize call was
+  failing; it now goes through Chat Completions, where that model is served. It
+  also sends a short summarize instruction, without which the model replies
+  conversationally to the passage and truncates mid-sentence at the completion
+  cap.
 - `ZeroGPUClient` no longer returns a reasoning model's scratchpad in place of
   its answer. `gpt-oss-120b` prepends a `reasoning` output item whose block
   also carries a `text` field, and the old "first text block wins" extraction

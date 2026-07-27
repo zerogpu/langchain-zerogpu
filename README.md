@@ -34,12 +34,13 @@ pip install langchain-zerogpu
 
 ## Authenticate
 
-Every request needs a ZeroGPU **API key** (starts with `zgpu-api-`) and a
-**project id**. Provide them via environment variables:
+Every request needs a ZeroGPU **API key** (starts with `zgpu-api-`). A
+**project id** is optional — set one to scope requests to a specific project.
+Provide them via environment variables:
 
 ```bash
 export ZEROGPU_API_KEY="zgpu-api-..."
-export ZEROGPU_PROJECT_ID="your-project-id"
+export ZEROGPU_PROJECT_ID="your-project-id"   # optional
 ```
 
 …or pass them directly to any tool or the toolkit:

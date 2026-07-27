@@ -38,10 +38,30 @@ def test_resolve_api_key_bad_prefix() -> None:
         resolve_api_key("not-a-zgpu-key")
 
 
-def test_resolve_project_id_missing(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_resolve_project_id_from_argument() -> None:
+    assert resolve_project_id(VALID_PROJECT) == VALID_PROJECT
+
+
+def test_resolve_project_id_from_env(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("ZEROGPU_PROJECT_ID", VALID_PROJECT)
+    assert resolve_project_id(None) == VALID_PROJECT
+
+
+def test_resolve_project_id_missing_is_allowed(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # x-project-id is optional in the API spec: an unset project id leaves the
+    # request unscoped rather than failing.
     monkeypatch.delenv("ZEROGPU_PROJECT_ID", raising=False)
-    with pytest.raises(ZeroGPUAuthError):
-        resolve_project_id(None)
+    assert resolve_project_id(None) == ""
+
+
+def test_tool_constructs_without_a_project_id(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.delenv("ZEROGPU_PROJECT_ID", raising=False)
+    tool = ZeroGPUChatTool(api_key=VALID_KEY)
+    assert isinstance(tool.client, ZeroGPUClient)
 
 
 def test_client_does_not_expose_key_in_repr() -> None:
@@ -101,6 +121,33 @@ def test_build_kwargs_merges_instructions_with_additional_body() -> None:
     assert body == {"categories": ["a", "b"], "instructions": "sys"}
     # The caller's dict must not be mutated.
     assert additional_body == {"categories": ["a", "b"]}
+
+
+def test_summarize_routes_through_chat_completions(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # llama-3.1-8b-instruct-fast rejects the Responses API's plain-string
+    # input, so the summarizer must use chat completions -- with the
+    # instruction that keeps it summarizing rather than chatting back.
+    from langchain_zerogpu import ZeroGPUSummarizeTool
+    from langchain_zerogpu.tools import MODEL_SUMMARIZE, SUMMARIZE_INSTRUCTION
+
+    calls: dict[str, object] = {}
+    tool = ZeroGPUSummarizeTool(api_key=VALID_KEY, project_id=VALID_PROJECT)
+
+    def fake_chat(*, model: str, text: str, system: str | None = None) -> str:
+        calls.update(model=model, text=text, system=system)
+        return "a summary"
+
+    def fail_responses(**kwargs: object) -> str:
+        raise AssertionError("summarize must not use the Responses API")
+
+    monkeypatch.setattr(tool.client, "chat", fake_chat)
+    monkeypatch.setattr(tool.client, "responses", fail_responses)
+
+    assert tool.invoke({"text": "a long passage"}) == "a summary"
+    assert calls["model"] == MODEL_SUMMARIZE
+    assert calls["system"] == SUMMARIZE_INSTRUCTION
 
 
 # -- response recovery -------------------------------------------------------

@@ -71,7 +71,7 @@ class _BaseZeroGPUTool(BaseTool):
     """Explicit API key; falls back to ``ZEROGPU_API_KEY`` when omitted."""
 
     project_id: str | None = Field(default=None, exclude=True)
-    """Explicit project id; falls back to ``ZEROGPU_PROJECT_ID`` when omitted."""
+    """Optional project id; falls back to ``ZEROGPU_PROJECT_ID`` when omitted."""
 
     base_url: str | None = Field(default=None, exclude=True)
     """Optional base URL override for the ZeroGPU API."""
@@ -231,17 +231,28 @@ class ZeroGPUReasonMultilingualTool(_BaseZeroGPUTool):
         )
 
 
+#: Steers the summarizer, which otherwise replies conversationally to a bare
+#: passage and runs into the completion-token cap mid-sentence.
+SUMMARIZE_INSTRUCTION = (
+    "Summarize the user's text faithfully and concisely. Reply with the "
+    "summary only -- no preamble, commentary, or follow-up questions."
+)
+
+
 class ZeroGPUSummarizeTool(_BaseZeroGPUTool):
     """Condense a passage into a short summary.
 
-    Routes to ``llama-3.1-8b-instruct-fast``. Best for passages up to a few
-    paragraphs.
+    Routes to ``llama-3.1-8b-instruct-fast`` over Chat Completions. That model
+    currently rejects the Responses API's plain-string ``input`` with
+    ``invalid_prompt`` ("required properties at '/' are 'prompt' ...
+    'messages'"), so the passage is sent as a user message instead.
     """
 
     name: str = "zerogpu_summarize"
     description: str = (
         "Summarize / condense a passage of text into a short TL;DR using a "
-        "fast model. Best for passages up to a few paragraphs."
+        "fast model. Handles anything from a few paragraphs to a full "
+        "document."
     )
     args_schema: type[TextInput] = TextInput
 
@@ -250,14 +261,18 @@ class ZeroGPUSummarizeTool(_BaseZeroGPUTool):
         text: str,
         run_manager: CallbackManagerForToolRun | None = None,
     ) -> str:
-        return self.client.responses(model=MODEL_SUMMARIZE, text=text)
+        return self.client.chat(
+            model=MODEL_SUMMARIZE, text=text, system=SUMMARIZE_INSTRUCTION
+        )
 
     async def _arun(
         self,
         text: str,
         run_manager: AsyncCallbackManagerForToolRun | None = None,
     ) -> str:
-        return await self.client.aresponses(model=MODEL_SUMMARIZE, text=text)
+        return await self.client.achat(
+            model=MODEL_SUMMARIZE, text=text, system=SUMMARIZE_INSTRUCTION
+        )
 
 
 class ZeroGPUFollowUpQuestionsTool(_BaseZeroGPUTool):
