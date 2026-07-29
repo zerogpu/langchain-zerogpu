@@ -10,7 +10,7 @@ This package exposes the ZeroGPU task models -- chat, reasoning, summarization,
 follow-up questions, classification, entity / JSON extraction, and PII
 extraction / redaction -- as first-class LangChain
 :class:`~langchain_core.tools.BaseTool` subclasses, plus a
-:class:`ZeroGPUToolkit` that bundles all fifteen behind a single shared client.
+:class:`ZeroGPUToolkit` that bundles all seventeen behind a single shared client.
 """
 
 from __future__ import annotations
@@ -31,6 +31,8 @@ from langchain_zerogpu.tools import (
     ZeroGPUExtractJSONTool,
     ZeroGPUExtractPIITool,
     ZeroGPUFollowUpQuestionsTool,
+    ZeroGPUReasonCodeTool,
+    ZeroGPUReasonLongContextTool,
     ZeroGPUReasonMultilingualTool,
     ZeroGPUReasonTool,
     ZeroGPURedactPIITool,
@@ -50,6 +52,8 @@ __all__ = [
     "ZeroGPUChatThinkingTool",
     "ZeroGPUReasonTool",
     "ZeroGPUReasonMultilingualTool",
+    "ZeroGPUReasonLongContextTool",
+    "ZeroGPUReasonCodeTool",
     "ZeroGPUSummarizeTool",
     "ZeroGPUFollowUpQuestionsTool",
     "ZeroGPUClassifyIABTool",

@@ -21,6 +21,8 @@ from langchain_zerogpu import (
     ZeroGPUExtractJSONTool,
     ZeroGPUExtractPIITool,
     ZeroGPUFollowUpQuestionsTool,
+    ZeroGPUReasonCodeTool,
+    ZeroGPUReasonLongContextTool,
     ZeroGPUReasonMultilingualTool,
     ZeroGPUReasonTool,
     ZeroGPURedactPIITool,
@@ -79,6 +81,26 @@ class TestZeroGPUReasonMultilingualToolUnit(_ZeroGPUToolUnitTests):
     @property
     def tool_invoke_params_example(self) -> dict[str, Any]:
         return {"text": "¿Cuál es la capital de Japón? Explica brevemente."}
+
+
+class TestZeroGPUReasonLongContextToolUnit(_ZeroGPUToolUnitTests):
+    @property
+    def tool_constructor(self) -> type[BaseTool]:
+        return ZeroGPUReasonLongContextTool
+
+    @property
+    def tool_invoke_params_example(self) -> dict[str, Any]:
+        return {"text": "Summarize the architecture described above in one line."}
+
+
+class TestZeroGPUReasonCodeToolUnit(_ZeroGPUToolUnitTests):
+    @property
+    def tool_constructor(self) -> type[BaseTool]:
+        return ZeroGPUReasonCodeTool
+
+    @property
+    def tool_invoke_params_example(self) -> dict[str, Any]:
+        return {"text": "Rewrite this callback-style function to use async/await."}
 
 
 class TestZeroGPUSummarizeToolUnit(_ZeroGPUToolUnitTests):

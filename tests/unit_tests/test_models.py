@@ -13,6 +13,8 @@ EXPECTED_MODELS = {
     "zerogpu_chat_thinking": "LFM2.5-1.2B-Thinking",
     "zerogpu_reason": "gpt-oss-120b",
     "zerogpu_reason_multilingual": "qwen3-30b-a3b-fp8",
+    "zerogpu_reason_long_context": "glm-5.2",
+    "zerogpu_reason_code": "deepseek-v4-flash",
     "zerogpu_summarize": "llama-3.1-8b-instruct-fast",
     "zerogpu_followup_questions": "zlm-v1-followup-questions-edge",
     "zerogpu_classify_iab": "zlm-v1-iab-classify-edge",
@@ -44,6 +46,11 @@ def test_model_constants_match_the_api_spec() -> None:
         tools.MODEL_REASON_MULTILINGUAL
         == EXPECTED_MODELS["zerogpu_reason_multilingual"]
     )
+    assert (
+        tools.MODEL_REASON_LONG_CONTEXT
+        == EXPECTED_MODELS["zerogpu_reason_long_context"]
+    )
+    assert tools.MODEL_REASON_CODE == EXPECTED_MODELS["zerogpu_reason_code"]
     assert tools.MODEL_SUMMARIZE == EXPECTED_MODELS["zerogpu_summarize"]
     assert tools.MODEL_FOLLOWUP == EXPECTED_MODELS["zerogpu_followup_questions"]
     assert tools.MODEL_IAB == EXPECTED_MODELS["zerogpu_classify_iab"]
