@@ -9,10 +9,10 @@ _PARAMS = {
 }
 
 
-def test_get_tools_returns_fifteen_tools() -> None:
+def test_get_tools_returns_seventeen_tools() -> None:
     toolkit = ZeroGPUToolkit(**_PARAMS)
     tools = toolkit.get_tools()
-    assert len(tools) == 15
+    assert len(tools) == 17
     assert {type(tool) for tool in tools} == set(ALL_TOOL_CLASSES)
 
 

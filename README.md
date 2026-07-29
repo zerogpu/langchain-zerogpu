@@ -61,6 +61,8 @@ The API key is stored as a `pydantic.SecretStr` and is never logged.
 | `ZeroGPUChatThinkingTool` | `LFM2.5-1.2B-Thinking` | Chat with a visible reasoning trace |
 | `ZeroGPUReasonTool` | `gpt-oss-120b` | Heavier reasoning, 131K context |
 | `ZeroGPUReasonMultilingualTool` | `qwen3-30b-a3b-fp8` | Reasoning across 100+ languages |
+| `ZeroGPUReasonLongContextTool` | `glm-5.2` | Reasoning over a 1M-token context |
+| `ZeroGPUReasonCodeTool` | `deepseek-v4-flash` | Coding and agentic work, 1M context |
 | `ZeroGPUSummarizeTool` | `llama-3.1-8b-instruct-fast` | Condense a passage |
 | `ZeroGPUFollowUpQuestionsTool` | `zlm-v1-followup-questions-edge` | Questions a reader would ask next |
 | `ZeroGPUClassifyIABTool` | `zlm-v1-iab-classify-edge` | IAB taxonomy classification |
@@ -94,7 +96,7 @@ result = await tool.ainvoke({"text": "...", "labels": ["a", "b"]})
 
 ## Bind the tools to an agent
 
-Use the toolkit to get all fifteen tools — wired to a single shared client — and
+Use the toolkit to get all seventeen tools — wired to a single shared client — and
 bind them to an agent:
 
 ```python

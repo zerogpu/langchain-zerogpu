@@ -11,8 +11,11 @@ Catches the package up with the ZeroGPU API spec. Four models published in the
 API reference had no tool — the two large open-weight reasoning models, the
 follow-up question generator, and the domain-level IAB classifier — and the
 enriched IAB classifier had moved to a `v2` model id that the package was not
-sending. All four are now first-class tools and the stale id is fixed, taking
-the toolkit from eleven tools to fifteen.
+sending. All four are now first-class tools and the stale id is fixed.
+
+The catalog then gained two more open-weight text-generation models, `glm-5.2`
+and `deepseek-v4-flash`, both with a 1,048,576-token context window. Those are
+wrapped too, taking the toolkit from eleven tools to seventeen.
 
 The spec also made `x-project-id` optional, so the project id is no longer
 required here either. Testing the new models against the live API turned up two
@@ -26,8 +29,21 @@ Both are fixed.
   context window, for prompts that need more reasoning headroom than the nano
   edge models.
 - `ZeroGPUReasonMultilingualTool` (`qwen3-30b-a3b-fp8`) — reasoning across
-  100+ languages. This model is served on the Chat Completions endpoint only,
-  so it is the one tool that does not route through the Responses API.
+  100+ languages. Served on the Chat Completions endpoint only, so it does not
+  route through the Responses API.
+- `ZeroGPUReasonLongContextTool` (`glm-5.2`) — a 753B MoE model with a
+  1,048,576-token context, for inputs that do not fit `zerogpu_reason`'s 131K:
+  whole repositories, book-length documents, long agent transcripts. The most
+  capable model on the platform and by a wide margin the most expensive —
+  \$1.10 / \$3.50 per 1M input/output tokens, roughly twenty times
+  `gpt-oss-120b` — so the tool description steers agents away from it unless
+  the input genuinely requires the context. Chat Completions only.
+- `ZeroGPUReasonCodeTool` (`deepseek-v4-flash`) — a 284B MoE model (13B active
+  per token) with the same 1M context, tuned for coding and agentic workflows,
+  at \$0.07 / \$0.14 per 1M. Chat Completions only. Note that this model is
+  published in the API reference but not yet served: it currently returns
+  `404 model_not_found`. The tool is correct per the spec and will work once
+  the platform enables it.
 - `ZeroGPUFollowUpQuestionsTool` (`zlm-v1-followup-questions-edge`) — returns
   the questions a reader would naturally ask next, as a `list[str]` (the model
   emits a JSON array; newline-delimited output is accepted as a fallback).
@@ -73,6 +89,12 @@ Both are fixed.
   `zlm-v2-iab-classify-edge-enriched`, the id published in the API spec. The
   package was still sending `zlm-v1-iab-classify-edge-enriched`, which the API
   currently still serves as an alias but no longer documents.
+- `ZeroGPUClassifyIABEnrichedTool`'s docstring still named the `v1` id after
+  the constant had moved to `v2`, so the rendered API documentation contradicted
+  what the tool actually sent.
+- `tests/integration_tests/test_compile.py` asserted a hard-coded tool count of
+  eleven and had been failing since the count moved to fifteen. CI runs only the
+  unit tests, so nothing caught it. It now tracks `ALL_TOOL_CLASSES`.
 
 ## [0.2.3] - 2026-06-08
 
