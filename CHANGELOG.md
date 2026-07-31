@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.4] - 2026-07-30
+
 Catches the package up with the ZeroGPU API spec. Four models published in the
 API reference had no tool — the two large open-weight reasoning models, the
 follow-up question generator, and the domain-level IAB classifier — and the
@@ -194,7 +196,8 @@ releases whose notes come straight from this changelog.
 - Clear error messages for authentication (401), access (403), rate-limit
   (429), server (5xx), and network failures.
 
-[Unreleased]: https://github.com/zerogpu/langchain-zerogpu/compare/v0.2.3...HEAD
+[Unreleased]: https://github.com/zerogpu/langchain-zerogpu/compare/v0.2.4...HEAD
+[0.2.4]: https://github.com/zerogpu/langchain-zerogpu/compare/v0.2.3...v0.2.4
 [0.2.3]: https://github.com/zerogpu/langchain-zerogpu/compare/v0.2.2...v0.2.3
 [0.2.2]: https://github.com/zerogpu/langchain-zerogpu/compare/v0.2.1...v0.2.2
 [0.2.1]: https://github.com/zerogpu/langchain-zerogpu/compare/v0.2.0...v0.2.1
