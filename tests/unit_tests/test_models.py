@@ -14,9 +14,8 @@ EXPECTED_MODELS = {
     "zerogpu_reason": "gpt-oss-120b",
     "zerogpu_reason_multilingual": "qwen3-30b-a3b-fp8",
     "zerogpu_reason_long_context": "glm-5.2",
-    "zerogpu_reason_code": "deepseek-v4-flash",
+    "zerogpu_reason_code": "deepseek-v4-flash-0731",
     "zerogpu_summarize": "llama-3.1-8b-instruct-fast",
-    "zerogpu_followup_questions": "zlm-v1-followup-questions-edge",
     "zerogpu_classify_iab": "zlm-v1-iab-classify-edge",
     "zerogpu_classify_iab_enriched": "zlm-v2-iab-classify-edge-enriched",
     "zerogpu_classify_domain": "zlm-v1-iab-domain-classifier",
@@ -52,7 +51,6 @@ def test_model_constants_match_the_api_spec() -> None:
     )
     assert tools.MODEL_REASON_CODE == EXPECTED_MODELS["zerogpu_reason_code"]
     assert tools.MODEL_SUMMARIZE == EXPECTED_MODELS["zerogpu_summarize"]
-    assert tools.MODEL_FOLLOWUP == EXPECTED_MODELS["zerogpu_followup_questions"]
     assert tools.MODEL_IAB == EXPECTED_MODELS["zerogpu_classify_iab"]
     assert tools.MODEL_IAB_ENRICHED == EXPECTED_MODELS["zerogpu_classify_iab_enriched"]
     assert tools.MODEL_IAB_DOMAIN == EXPECTED_MODELS["zerogpu_classify_domain"]

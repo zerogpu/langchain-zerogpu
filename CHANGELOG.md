@@ -5,6 +5,38 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.0] - 2026-09-16
+
+Model catalog sync. `ZeroGPUFollowUpQuestionsTool` is gone — the ZeroGPU API no
+longer serves the model behind it, so every call it made was already failing.
+`ZeroGPUReasonCodeTool` follows its model to a version-pinned id, and the
+long-context tool had been advertising a context window four times larger than
+`glm-5.2` actually has, which was steering agents toward the most expensive
+model on the platform for inputs that never needed it. Tool names and outputs
+are unchanged apart from the notes below.
+
+### Changed
+
+- `ZeroGPUReasonCodeTool` now calls `deepseek-v4-flash-0731`. The API renamed
+  `deepseek-v4-flash`, and the old id no longer resolves. The model's 284B
+  parameters and 1,048,576-token context window are unchanged.
+- `ZeroGPUReasonLongContextTool`: `glm-5.2`'s context window is 262K, not 1M.
+  Corrected in the tool description agents route on, its docstring, and the
+  README. It remains the most capable and priciest ZeroGPU model, but at roughly
+  six to seven times `zerogpu_reason` per token rather than twenty. Because
+  `deepseek-v4-flash-0731` now has the largest context window in the catalog,
+  `ZeroGPUReasonCodeTool` no longer defers to this tool on sheer input size.
+- `ZeroGPUReasonTool`: `gpt-oss-120b` has 120B parameters, not 117B.
+- `ZeroGPUReasonMultilingualTool`: `qwen3-30b-a3b-fp8` has 30B parameters, not
+  30.5B.
+
+### Removed
+
+- `ZeroGPUFollowUpQuestionsTool` (`zerogpu_followup_questions`).
+  `zlm-v1-followup-questions-edge` is no longer served by the ZeroGPU API, so
+  the tool failed on every call. Remove it from your imports; the toolkit now
+  returns sixteen tools instead of seventeen.
+
 ## [0.2.4] - 2026-07-30
 
 Catches the package up with the ZeroGPU API spec. Four models published in the
@@ -194,6 +226,7 @@ releases whose notes come straight from this changelog.
 - Clear error messages for authentication (401), access (403), rate-limit
   (429), server (5xx), and network failures.
 
+[1.0.0]: https://github.com/zerogpu/langchain-zerogpu/compare/v0.2.4...v1.0.0
 [0.2.4]: https://github.com/zerogpu/langchain-zerogpu/compare/v0.2.3...v0.2.4
 [0.2.3]: https://github.com/zerogpu/langchain-zerogpu/compare/v0.2.2...v0.2.3
 [0.2.2]: https://github.com/zerogpu/langchain-zerogpu/compare/v0.2.1...v0.2.2

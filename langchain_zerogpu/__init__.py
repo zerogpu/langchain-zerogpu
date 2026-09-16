@@ -7,10 +7,9 @@ routing, summarization -- at ~10x lower latency and 50%+ lower cost than
 frontier-model workflows.
 
 This package exposes the ZeroGPU task models -- chat, reasoning, summarization,
-follow-up questions, classification, entity / JSON extraction, and PII
-extraction / redaction -- as first-class LangChain
-:class:`~langchain_core.tools.BaseTool` subclasses, plus a
-:class:`ZeroGPUToolkit` that bundles all seventeen behind a single shared client.
+classification, entity / JSON extraction, and PII extraction / redaction -- as
+first-class LangChain :class:`~langchain_core.tools.BaseTool` subclasses, plus a
+:class:`ZeroGPUToolkit` that bundles all sixteen behind a single shared client.
 """
 
 from __future__ import annotations
@@ -30,7 +29,6 @@ from langchain_zerogpu.tools import (
     ZeroGPUExtractEntitiesTool,
     ZeroGPUExtractJSONTool,
     ZeroGPUExtractPIITool,
-    ZeroGPUFollowUpQuestionsTool,
     ZeroGPUReasonCodeTool,
     ZeroGPUReasonLongContextTool,
     ZeroGPUReasonMultilingualTool,
@@ -55,7 +53,6 @@ __all__ = [
     "ZeroGPUReasonLongContextTool",
     "ZeroGPUReasonCodeTool",
     "ZeroGPUSummarizeTool",
-    "ZeroGPUFollowUpQuestionsTool",
     "ZeroGPUClassifyIABTool",
     "ZeroGPUClassifyIABEnrichedTool",
     "ZeroGPUClassifyDomainTool",

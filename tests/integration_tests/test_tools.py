@@ -22,7 +22,6 @@ from langchain_zerogpu import (
     ZeroGPUExtractEntitiesTool,
     ZeroGPUExtractJSONTool,
     ZeroGPUExtractPIITool,
-    ZeroGPUFollowUpQuestionsTool,
     ZeroGPUReasonCodeTool,
     ZeroGPUReasonLongContextTool,
     ZeroGPUReasonMultilingualTool,
@@ -109,22 +108,6 @@ class TestZeroGPUSummarizeToolIntegration(ToolsIntegrationTests):
                 "ZeroGPU runs small task models at the edge so that agents can "
                 "offload cheap NLP work instead of spending frontier tokens. "
                 "It supports classification, extraction, summarization and more."
-            )
-        }
-
-
-class TestZeroGPUFollowUpQuestionsToolIntegration(ToolsIntegrationTests):
-    @property
-    def tool_constructor(self) -> type[BaseTool]:
-        return ZeroGPUFollowUpQuestionsTool
-
-    @property
-    def tool_invoke_params_example(self) -> dict[str, Any]:
-        return {
-            "text": (
-                "Electric vehicles are gaining popularity as battery costs drop "
-                "and charging infrastructure expands. Most modern EVs offer 250 "
-                "to 350 miles on a single charge."
             )
         }
 
