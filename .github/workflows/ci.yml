@@ -28,7 +28,7 @@ jobs:
           enable-cache: true
 
       - name: Sync dependencies
-        run: uv sync --all-groups
+        run: uv sync --all-groups --locked
 
       - name: Ruff lint
         run: uv run ruff check .
@@ -42,30 +42,46 @@ jobs:
       - name: Unit tests (sockets disabled)
         run: uv run pytest --disable-socket tests/unit_tests
 
-  changelog:
-    name: Check CHANGELOG.md updated
+  release-check:
+    # Merging to main releases whatever version pyproject.toml carries, so a PR
+    # that changes the package must carry the bump and its CHANGELOG section.
+    name: Version bump + CHANGELOG
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request'
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+      - uses: actions/checkout@v4
         with:
           persist-credentials: false
 
-      - name: Check CHANGELOG.md updated
+      - name: Check version bump and CHANGELOG
+        env:
+          BASE_REF: ${{ github.base_ref }}
         run: |
           set -euo pipefail
-          BASE_REF="${{ github.base_ref }}"
           git fetch --no-tags --depth=1 origin "$BASE_REF"
+          version() { sed -n 's/^version = "\(.*\)"$/\1/p' | head -1; }
 
-          # Only enforce when package code changed.
-          if git diff --quiet "origin/$BASE_REF" -- langchain_zerogpu/ pyproject.toml; then
-            echo "No package changes — CHANGELOG update not required."
+          OLD="$(git show "origin/$BASE_REF:pyproject.toml" | version)"
+          NEW="$(version < pyproject.toml)"
+
+          if [ "$OLD" = "$NEW" ] && git diff --quiet "origin/$BASE_REF" -- langchain_zerogpu/; then
+            echo "No package changes and no version bump — nothing to release."
             exit 0
           fi
 
-          if git diff --quiet "origin/$BASE_REF" -- CHANGELOG.md; then
-            echo "::error file=CHANGELOG.md::Package files changed but CHANGELOG.md was not updated. Add the changes under '## [Unreleased]' (they become the GitHub release notes at release time)."
+          if ! [[ "$NEW" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error file=pyproject.toml::version '$NEW' is not MAJOR.MINOR.PATCH"
+            exit 1
+          fi
+          if [ "$NEW" = "$OLD" ] || [ "$(printf '%s\n%s\n' "$OLD" "$NEW" | sort -V | tail -1)" != "$NEW" ]; then
+            echo "::error file=pyproject.toml::Package changed but the version was not bumped ($BASE_REF has $OLD, this PR has $NEW). Run 'make bump' (or bump-minor / bump-major)."
             exit 1
           fi
 
-          echo "CHANGELOG.md updated."
+          TOP="$(awk '/^## \[/{print; exit}' CHANGELOG.md | sed 's/^## \[\([^]]*\)\].*/\1/')"
+          if [ "$TOP" != "$NEW" ]; then
+            echo "::error file=CHANGELOG.md::Top CHANGELOG section is '## [$TOP]'. Add a '## [$NEW] - YYYY-MM-DD' section at the top — it becomes the GitHub release notes."
+            exit 1
+          fi
+
+          echo "Version $OLD -> $NEW with a matching CHANGELOG section. Merging releases it."
