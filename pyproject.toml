@@ -77,6 +77,8 @@ markers = [
 [tool.ruff]
 line-length = 88
 target-version = "py310"
+# Claude Code skills and their helper scripts are repo tooling, not package code.
+extend-exclude = [".claude"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "W", "UP", "B", "D"]
