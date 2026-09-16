@@ -20,7 +20,6 @@ from langchain_zerogpu import (
     ZeroGPUExtractEntitiesTool,
     ZeroGPUExtractJSONTool,
     ZeroGPUExtractPIITool,
-    ZeroGPUFollowUpQuestionsTool,
     ZeroGPUReasonCodeTool,
     ZeroGPUReasonLongContextTool,
     ZeroGPUReasonMultilingualTool,
@@ -111,16 +110,6 @@ class TestZeroGPUSummarizeToolUnit(_ZeroGPUToolUnitTests):
     @property
     def tool_invoke_params_example(self) -> dict[str, Any]:
         return {"text": "A long passage that needs condensing into a TL;DR."}
-
-
-class TestZeroGPUFollowUpQuestionsToolUnit(_ZeroGPUToolUnitTests):
-    @property
-    def tool_constructor(self) -> type[BaseTool]:
-        return ZeroGPUFollowUpQuestionsTool
-
-    @property
-    def tool_invoke_params_example(self) -> dict[str, Any]:
-        return {"text": "Most modern EVs offer 250 to 350 miles on a single charge."}
 
 
 class TestZeroGPUClassifyIABToolUnit(_ZeroGPUToolUnitTests):
