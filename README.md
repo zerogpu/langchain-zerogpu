@@ -141,7 +141,10 @@ make lint               # ruff check + format --check
 make mypy               # mypy (disallow_untyped_defs)
 make test               # unit tests, sockets disabled
 make integration_test   # integration tests (needs real ZeroGPU creds)
+make bump               # bump the version; merging to main releases it
 ```
+
+Releases are automatic — see [RELEASING.md](RELEASING.md).
 
 ## License
 
