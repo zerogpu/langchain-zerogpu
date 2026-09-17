@@ -3,7 +3,7 @@
 Each tool routes a single text-in / structured-out task to a purpose-built
 small or nano ZeroGPU language model through the official ``zerogpu-api`` SDK --
 the repeatable, high-volume work frontier models shouldn't run, at ~10x lower
-latency and 50%+ lower cost. All sixteen tools share the same
+latency and 50%+ lower cost. All nineteen tools share the same
 credential-resolution and error-handling behaviour via
 :class:`~langchain_zerogpu._client.ZeroGPUClient`.
 
@@ -44,10 +44,13 @@ MODEL_REASON = "gpt-oss-120b"
 MODEL_REASON_MULTILINGUAL = "qwen3-30b-a3b-fp8"
 MODEL_REASON_LONG_CONTEXT = "glm-5.2"
 MODEL_REASON_CODE = "deepseek-v4-flash-0731"
+MODEL_REASON_DEEPSEEK = "deepseek-v4.1-flash"
+MODEL_MODERATE = "llama-guard-4-12b"
 MODEL_SUMMARIZE = "llama-3.1-8b-instruct-fast"
 MODEL_IAB = "zlm-v1-iab-classify-edge"
 MODEL_IAB_ENRICHED = "zlm-v2-iab-classify-edge-enriched"
 MODEL_IAB_DOMAIN = "zlm-v1-iab-domain-classifier"
+MODEL_EXTRACT_SIGNALS = "zlm-v1-signal-extract"
 MODEL_ZERO_SHOT = "deberta-v3-small"
 MODEL_GLINER = "gliner2-base-v1"
 MODEL_PII = "gliner-multi-pii-v1"
@@ -284,9 +287,9 @@ class ZeroGPUReasonCodeTool(_BaseZeroGPUTool):
         "Answer a coding or multi-step automation prompt -- reading a codebase, "
         "writing or porting code, planning an agent's next actions -- using a "
         "284B model with a 1M-token context window. Cheaper than "
-        "zerogpu_reason_long_context and the largest context on the platform; "
-        "prefer it for code or tool-use work, or for input too large even for "
-        "that tool."
+        "zerogpu_reason_long_context and zerogpu_reason_deepseek, and ties the "
+        "latter for the largest context on the platform; prefer it for code or "
+        "tool-use work, or for input too large for the other reasoning tools."
     )
     args_schema: type[ChatInput] = ChatInput
 
@@ -307,6 +310,80 @@ class ZeroGPUReasonCodeTool(_BaseZeroGPUTool):
         return await self.client.achat(
             model=MODEL_REASON_CODE, text=text, system=system
         )
+
+
+class ZeroGPUReasonDeepseekTool(_BaseZeroGPUTool):
+    """Reasoning answer from the V4.1 generation of DeepSeek Flash.
+
+    Routes to ``deepseek-v4.1-flash`` (sparse mixture-of-experts, 8B parameters
+    active on input and 16B on output, 1,048,576-token context). Served on the
+    Chat Completions endpoint only, so it does not use the Responses API.
+    """
+
+    name: str = "zerogpu_reason_deepseek"
+    description: str = (
+        "Answer a chat, reasoning, or agentic prompt using DeepSeek's V4.1 "
+        "Flash model -- a sparse mixture-of-experts model with a 1M-token "
+        "context window, function calling, and both fast and higher-effort "
+        "reasoning modes. It costs about twice as much per input token as "
+        "zerogpu_reason_code, which has the same context window, so prefer "
+        "that tool unless you specifically want the V4.1 generation."
+    )
+    args_schema: type[ChatInput] = ChatInput
+
+    def _run(
+        self,
+        text: str,
+        system: str | None = None,
+        run_manager: CallbackManagerForToolRun | None = None,
+    ) -> str:
+        return self.client.chat(model=MODEL_REASON_DEEPSEEK, text=text, system=system)
+
+    async def _arun(
+        self,
+        text: str,
+        system: str | None = None,
+        run_manager: AsyncCallbackManagerForToolRun | None = None,
+    ) -> str:
+        return await self.client.achat(
+            model=MODEL_REASON_DEEPSEEK, text=text, system=system
+        )
+
+
+class ZeroGPUModerateTool(_BaseZeroGPUTool):
+    """Judge text safe or unsafe against Llama Guard's policy categories.
+
+    Routes to ``llama-guard-4-12b`` (12B parameters, 160K-token context).
+    Served on the Chat Completions endpoint only, so it does not use the
+    Responses API. The returned text is the model's safe / unsafe verdict plus
+    the policy categories a violation matched.
+    """
+
+    name: str = "zerogpu_moderate"
+    description: str = (
+        "Moderate a piece of text -- an incoming prompt or a generated reply "
+        "-- with Meta's Llama Guard 4 safety model, which returns a safe / "
+        "unsafe verdict together with the policy categories a violation "
+        "matched. Use for chat moderation, prompt and response filtering, "
+        "policy enforcement, and agent guardrails. Multilingual."
+    )
+    args_schema: type[ChatInput] = ChatInput
+
+    def _run(
+        self,
+        text: str,
+        system: str | None = None,
+        run_manager: CallbackManagerForToolRun | None = None,
+    ) -> str:
+        return self.client.chat(model=MODEL_MODERATE, text=text, system=system)
+
+    async def _arun(
+        self,
+        text: str,
+        system: str | None = None,
+        run_manager: AsyncCallbackManagerForToolRun | None = None,
+    ) -> str:
+        return await self.client.achat(model=MODEL_MODERATE, text=text, system=system)
 
 
 #: Steers the summarizer, which otherwise replies conversationally to a bare
@@ -444,6 +521,42 @@ class ZeroGPUClassifyDomainTool(_BaseZeroGPUTool):
     ) -> t.Any:
         return maybe_json(
             await self.client.aresponses(model=MODEL_IAB_DOMAIN, text=domain)
+        )
+
+
+class ZeroGPUExtractSignalsTool(_BaseZeroGPUTool):
+    """Turn free text into structured contextual signals.
+
+    Routes to ``zlm-v1-signal-extract`` (80M parameters). Returns the parsed
+    signal payload -- topics, keywords, intent, and other contextual
+    attributes -- from a single inference call. Takes a passage of text rather
+    than the bare domain the sibling domain classifier expects.
+    """
+
+    name: str = "zerogpu_extract_signals"
+    description: str = (
+        "Extract structured contextual signals -- topics, keywords, intent, "
+        "and other attributes -- from a passage of text in one call. Built for "
+        "content enrichment, contextual intelligence, ad targeting, agent "
+        "routing, and recommendation or analytics pipelines. Use the IAB tools "
+        "instead when you need formal IAB taxonomy categories."
+    )
+    args_schema: type[TextInput] = TextInput
+
+    def _run(
+        self,
+        text: str,
+        run_manager: CallbackManagerForToolRun | None = None,
+    ) -> t.Any:
+        return maybe_json(self.client.responses(model=MODEL_EXTRACT_SIGNALS, text=text))
+
+    async def _arun(
+        self,
+        text: str,
+        run_manager: AsyncCallbackManagerForToolRun | None = None,
+    ) -> t.Any:
+        return maybe_json(
+            await self.client.aresponses(model=MODEL_EXTRACT_SIGNALS, text=text)
         )
 
 
@@ -735,10 +848,13 @@ ALL_TOOL_CLASSES: list[type[_BaseZeroGPUTool]] = [
     ZeroGPUReasonMultilingualTool,
     ZeroGPUReasonLongContextTool,
     ZeroGPUReasonCodeTool,
+    ZeroGPUReasonDeepseekTool,
+    ZeroGPUModerateTool,
     ZeroGPUSummarizeTool,
     ZeroGPUClassifyIABTool,
     ZeroGPUClassifyIABEnrichedTool,
     ZeroGPUClassifyDomainTool,
+    ZeroGPUExtractSignalsTool,
     ZeroGPUClassifyZeroShotTool,
     ZeroGPUClassifyStructuredTool,
     ZeroGPUExtractEntitiesTool,

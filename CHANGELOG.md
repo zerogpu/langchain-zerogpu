@@ -5,6 +5,41 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] - 2026-09-17
+
+Model catalog sync. Three models the ZeroGPU API now serves had no tool, so the
+toolkit returns nineteen tools instead of sixteen: a second DeepSeek Flash
+reasoning tool, a Llama Guard moderation tool, and a signal-extraction tool for
+topics, keywords, and intent. Because `deepseek-v4.1-flash` matches
+`deepseek-v4-flash-0731`'s 1M-token context window, `ZeroGPUReasonCodeTool` no
+longer claims that window outright. Tool names and outputs are unchanged apart
+from the notes below.
+
+### Added
+
+- `ZeroGPUReasonDeepseekTool` (`zerogpu_reason_deepseek`) calls
+  `deepseek-v4.1-flash`, a sparse mixture-of-experts model with a 1M-token
+  context window, function calling, and both fast and higher-effort reasoning
+  modes. It costs about twice as much per input token as
+  `ZeroGPUReasonCodeTool`, which has the same context window.
+- `ZeroGPUModerateTool` (`zerogpu_moderate`) calls `llama-guard-4-12b` (12B
+  parameters, 160K-token context) and returns a safe / unsafe verdict plus the
+  policy categories a violation matched — for chat moderation, prompt and
+  response filtering, policy enforcement, and agent guardrails.
+- `ZeroGPUExtractSignalsTool` (`zerogpu_extract_signals`) calls
+  `zlm-v1-signal-extract` (80M parameters), which turns a passage into
+  structured contextual signals — topics, keywords, intent — in one call, for
+  content enrichment, ad targeting, agent routing, and analytics pipelines.
+- The toolkit now returns nineteen tools instead of sixteen.
+
+### Changed
+
+- `ZeroGPUReasonCodeTool`: `deepseek-v4-flash-0731` no longer has the largest
+  context window on the platform on its own — `deepseek-v4.1-flash` matches its
+  1M tokens. The tool description agents route on now says the two tie on
+  context and that this tool is the cheaper of them, instead of pointing at a
+  single long-context alternative.
+
 ## [1.0.0] - 2026-09-16
 
 Model catalog sync. `ZeroGPUFollowUpQuestionsTool` is gone — the ZeroGPU API no
@@ -226,6 +261,7 @@ releases whose notes come straight from this changelog.
 - Clear error messages for authentication (401), access (403), rate-limit
   (429), server (5xx), and network failures.
 
+[1.1.0]: https://github.com/zerogpu/langchain-zerogpu/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/zerogpu/langchain-zerogpu/compare/v0.2.4...v1.0.0
 [0.2.4]: https://github.com/zerogpu/langchain-zerogpu/compare/v0.2.3...v0.2.4
 [0.2.3]: https://github.com/zerogpu/langchain-zerogpu/compare/v0.2.2...v0.2.3

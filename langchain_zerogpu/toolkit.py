@@ -1,4 +1,4 @@
-"""Toolkit bundling all sixteen ZeroGPU tools behind a single shared client."""
+"""Toolkit bundling all nineteen ZeroGPU tools behind a single shared client."""
 
 from __future__ import annotations
 
@@ -61,7 +61,7 @@ class ZeroGPUToolkit(BaseToolkit):
         return data
 
     def get_tools(self) -> list[BaseTool]:
-        """Return all sixteen ZeroGPU tools sharing this toolkit's client.
+        """Return all nineteen ZeroGPU tools sharing this toolkit's client.
 
         Returns:
             A list of every ZeroGPU :class:`~langchain_core.tools.BaseTool`,
