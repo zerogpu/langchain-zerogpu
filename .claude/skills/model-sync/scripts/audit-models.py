@@ -12,7 +12,8 @@ Reports:
               to clean
   * COUNT   — a tool count ("all seventeen tools", `len(tools) == 17`) that disagrees
               with ALL_TOOL_CLASSES
-  * NOTE    — an API model no tool calls (nothing to do: the sync never creates a tool)
+  * ADD     — an API model no tool calls, with the template tool a new tool copies
+  * NOTE    — an embedding or moderation model no tool calls (the client has no endpoint for it)
 
 Read-only. Every finding is located for the caller to edit by hand.
 
@@ -275,6 +276,17 @@ def stale_counts(root, size):
 # --------------------------------------------------------------------------- main
 
 
+# Tasks `_client.py` cannot call (their models answer only on their own endpoints), and
+# the tool a new tool for each other task is copied from — see SKILL.md loop 4.
+NO_ENDPOINT = {"Text Embedding", "Text Moderation"}
+TEMPLATES = {
+    "Text Generation": "ZeroGPUReasonCodeTool",
+    "Summarization": "ZeroGPUSummarizeTool",
+    "Text Classification": "ZeroGPUClassifyDomainTool",
+    "PII": "ZeroGPUExtractPIITool",
+}
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--json", help="read the model list from this file instead of the API")
@@ -390,7 +402,13 @@ def main():
     called = package_ids | {s for s in successors.values() if s}
     for mid, m in api.items():
         if mid not in called and (not wanted or mid in wanted):
-            print(f"NOTE: {mid} ({m.get('taskDisplayName') or '?'}) — no tool calls it")
+            task = m.get("taskDisplayName") or "?"
+            if task in NO_ENDPOINT:
+                print(f"NOTE: {mid} ({task}) — no tool calls it; the client has no endpoint for this task")
+                continue
+            template = TEMPLATES.get(task, TEMPLATES["Text Generation"])
+            print(f"ADD: {mid} ({task}) — no tool calls it; copy {template}")
+            findings += 1
 
     print(f"\n{findings} finding(s).")
     return 1 if (args.strict and findings) else 0

@@ -1,15 +1,17 @@
 ---
 name: model-sync
-description: Reconcile langchain-zerogpu with the live model catalog API (https://api-dashboard.zerogpu.ai/api/models), which is the sole source of truth — correct every context window, parameter count, and cost comparison the tools state, move tools to models the API renamed, and delete tools whose model it no longer returns, across `langchain_zerogpu/tools.py` (`MODEL_*` constants, tool docstrings and `description`s, `ALL_TOOL_CLASSES`), `langchain_zerogpu/__init__.py`, `langchain_zerogpu/toolkit.py`, `README.md`, and `tests/` — then bump the version, write the matching CHANGELOG section, cut a branch from `main`, commit, and open a PR automatically. Merging publishes to PyPI. Runs unattended — it never asks questions. Use this skill whenever the user asks to "check the LangChain tools' models", "sync langchain-zerogpu with the model catalog", "fetch models from the dashboard API and compare", "fix the context windows in the tool descriptions", or schedules a routine to keep the package matched to what the API serves.
+description: Reconcile langchain-zerogpu with the live model catalog API (https://api-dashboard.zerogpu.ai/api/models), which is the sole source of truth — correct every context window, parameter count, and cost comparison the tools state, move tools to models the API renamed, delete tools whose model it no longer returns, and add a tool for every model it returns that no tool calls, across `langchain_zerogpu/tools.py` (`MODEL_*` constants, tool docstrings and `description`s, `ALL_TOOL_CLASSES`), `langchain_zerogpu/__init__.py`, `langchain_zerogpu/toolkit.py`, `README.md`, and `tests/` — then bump the minor version (always minor, even for a removal), write the matching CHANGELOG section, cut a branch from `main`, commit, and open a PR automatically. Merging publishes to PyPI. Runs unattended — it never asks questions. Use this skill whenever the user asks to "check the LangChain tools' models", "sync langchain-zerogpu with the model catalog", "fetch models from the dashboard API and compare", "fix the context windows in the tool descriptions", "add the new models", or schedules a routine to keep the package matched to what the API serves.
 ---
 
 # Model sync — langchain-zerogpu
 
-`https://api-dashboard.zerogpu.ai/api/models` **is the sole source of truth.** Its response defines which models exist and every machine-readable fact about them — task, context window, pricing, parameter count. Where the package disagrees, the package is wrong and this skill corrects it: the model each tool calls, the tool `description`s an agent routes on, the numbers and cost comparisons in docstrings, the README tools table, and the tests that pin them.
+`https://api-dashboard.zerogpu.ai/api/models` **is the sole source of truth.** Its response defines which models exist and every machine-readable fact about them — task, context window, pricing, parameter count. Where the package disagrees, the package is wrong and this skill corrects it: the model each tool calls, the tool `description`s an agent routes on, the numbers and cost comparisons in docstrings, the README tools table, the tests that pin them — and which tools exist at all.
 
 **This skill runs unattended.** It asks nothing and waits for nothing. Every decision below is a rule with a determined answer, so a scheduled run and an interactive run do the same thing. When a rule leaves genuine slack — the wording of a rewritten clause, how to phrase a changelog bullet — pick the option most consistent with the surrounding file and note the choice in the final summary. Never end a run with an open question, a "should I…", or work deferred for a human.
 
-Work the three loops in order: **[correct](#1-correct-what-disagrees)**, **[rename](#2-follow-renames)**, **[remove](#3-remove-what-is-gone)**. Then [verify](#4-verify), and [bump, write the changelog, branch, and open a PR against `main`](#5-bump-changelog-branch-and-open-the-pr) — every run that changes a file ends in a PR carrying a version bump and a changelog section, without being asked.
+**Fully in sync means both directions.** Every model the API returns is called by a tool (except the [two tasks the client cannot call](#4-add-what-is-new)), and every model a tool calls is one the API returns. The sync adds, edits, renames, and removes models and tools on its own to get there — no human decides what stays.
+
+Work the four loops in order: **[correct](#1-correct-what-disagrees)**, **[rename](#2-follow-renames)**, **[remove](#3-remove-what-is-gone)**, **[add](#4-add-what-is-new)**. Then [verify](#5-verify), and [bump, write the changelog, branch, and open a PR against `main`](#6-bump-changelog-branch-and-open-the-pr) — every run that changes a file ends in a PR carrying a **minor** version bump and a changelog section, without being asked.
 
 **Merging is a release.** A version bump merged to `main` is tagged and published to PyPI by `.github/workflows/release.yml` (`RELEASING.md`). PR CI fails a package change without a bump and a matching top `CHANGELOG.md` section, so the sync always writes both.
 
@@ -35,7 +37,8 @@ python3 .claude/skills/model-sync/scripts/audit-models.py
 | `RENAME` | a `MODEL_*` id the API now serves under a longer id, plus every file to update | [loop 2](#2-follow-renames) |
 | `ORPHAN` | a `MODEL_*` id the API does not return, the tools it leaves with no model (`TOOL:`), and every file to clean | [loop 3](#3-remove-what-is-gone) |
 | `COUNT` | a tool count (`all seventeen tools`, `len(tools) == 17`) that disagrees with `ALL_TOOL_CLASSES` | fix the number |
-| `NOTE` | an API model no tool calls | nothing — the sync [never creates a tool](#new-models); list them in the summary |
+| `ADD` | an API model no tool calls, with the template tool to copy | [loop 4](#4-add-what-is-new) |
+| `NOTE` | a `Text Embedding` or `Text Moderation` model — the client has no endpoint for it | nothing — list them in the summary |
 
 Flags: `--model <id>` (one model, repeatable), `--save` / `--json` (snapshot then re-run offline), `--strict` (exit 1 when anything is reported). The script only reports; every edit is by hand.
 
@@ -70,7 +73,7 @@ grep -rn "1M\|1,048,576\|131K\|twenty\|priciest\|most expensive\|most capable" l
 
 A `MODEL_*` id that an API id extends — `deepseek-v4-flash` in the package, `deepseek-v4-flash-0731` in the API — is the same model under a new id, provided exactly one API id extends it. The audit prints it as `RENAME` with every file under `REPLACE:`.
 
-Replace the old id with the new one in place: the `MODEL_*` constant's value (never its name), every docstring and description naming the id, the README tools table, the `EXPECTED_MODELS` pin in `tests/unit_tests/test_models.py`, and any test comment. Keep the tool's class, name, endpoint, and wording. Then correct whatever values drifted with it ([loop 1](#1-correct-what-disagrees)). Do not keep the old id as an alias. A rename is a **minor** bump.
+Replace the old id with the new one in place: the `MODEL_*` constant's value (never its name), every docstring and description naming the id, the README tools table, the `EXPECTED_MODELS` pin in `tests/unit_tests/test_models.py`, and any test comment. Keep the tool's class, name, endpoint, and wording. Then correct whatever values drifted with it ([loop 1](#1-correct-what-disagrees)). Do not keep the old id as an alias.
 
 ## 3. Remove what is gone
 
@@ -85,28 +88,40 @@ Every tool calls exactly one model constant, so a gone model deletes every tool 
 5. **Counts** — every "all seventeen" and `== 17` the audit's `COUNT` lines name once `ALL_TOOL_CLASSES` shrinks, including test function names (`test_get_tools_returns_seventeen_tools`).
 6. **Cascade.** When a removal leaves a list, sentence, or comment naming nothing, delete it rather than leaving it empty. A description of another tool that points at the deleted one (`prefer zerogpu_followup_questions`) is rewritten without it.
 
-Removing a tool class is a breaking change for anyone who imports it, so a removal is a **major** bump.
+Removing a tool class breaks anyone who imports it; say so in the changelog bullet. The bump is still **minor**.
+
+## 4. Add what is new
+
+Every model the API returns gets a tool, without asking. The audit prints each model no tool calls as `ADD`, with the template to copy. Run this loop after [remove](#3-remove-what-is-gone), so a name a removal freed can be reused — a model the API replaced with a new id ends up with a tool of the same name calling the new model.
+
+**Not callable: `Text Embedding` and `Text Moderation`.** `_client.py` only calls the Responses and Chat Completions endpoints, and those models answer only on their own. The audit prints them as `NOTE`; they get no tool, and `_client.py` is not changed to reach them.
+
+**Every other model gets a tool** in `langchain_zerogpu/tools.py`:
+
+1. **Template** (the audit names it). The existing tool for the same task: `Text Generation` → `ZeroGPUReasonCodeTool`, `Summarization` → `ZeroGPUSummarizeTool`, `Text Classification` → `ZeroGPUClassifyDomainTool`, `PII` → `ZeroGPUExtractPIITool`. Copy the class; keep its `args_schema`, its endpoint (`client.responses` or `client.chat`), its output handling, and the endpoint comment.
+2. **Names.** `MODEL_<WHAT>` constant, `ZeroGPU<What>Tool` class, and `name` `zerogpu_<what>`, following the existing tools (`MODEL_REASON_CODE` / `ZeroGPUReasonCodeTool` / `zerogpu_reason_code`). `<what>` is the task verb plus what distinguishes the model, from its id: `zlm-v1-signal-extract` → `zerogpu_extract_signals`; a new chat model → `zerogpu_reason_<family>` (`deepseek-v4.1-flash` → `zerogpu_reason_deepseek`). If a name is taken, append the distinguishing part of the id.
+3. **`description` and docstring.** The `description` is what an agent routes on: write it in the template's shape and length, from the payload alone — what `pricing.description` says the model is for, `pricing.use_cases`, parameter count, context window. The docstring names the model id with the same facts. A comparison with another tool only if it follows from the payload's own prices. Wrap at ruff's 88 columns.
+4. **Registry.** Add the class to `ALL_TOOL_CLASSES` next to its template, and to `__init__.py`'s import and `__all__`; add its capability to the module docstring's task list if no tool names it yet.
+5. **`README.md`** — a tools-table row in the template's shape, and its capability in the intro's task list if new.
+6. **`tests/`** — its `EXPECTED_MODELS` entry in `test_models.py`; a `Test…Unit` class in `test_standard.py` and a `Test…Integration` class in `integration_tests/test_tools.py`, each copied from the template's; its name in `test_imports.py`.
+7. **Counts** — every "all seventeen", `== 17`, and test function name the audit's `COUNT` lines name once `ALL_TOOL_CLASSES` grows.
 
 ## Rules
 
-### New models
-
-A model in the API that no tool calls gets nothing. The sync never creates a tool: a tool's class name, `name`, `description`, input schema, and output shape are product decisions, not catalog facts. List each such model in the summary and the PR body as served by the API with no tool.
-
 ### Endpoints
 
-Never change whether a tool calls `client.responses` or `client.chat`. A renamed model keeps its tool's endpoint, and the payload's sample bodies are not evidence of routability either way — the comments explaining why a tool uses Chat Completions stay.
+Never change whether an existing tool calls `client.responses` or `client.chat`. A renamed model keeps its tool's endpoint, a new tool keeps its template's, and the payload's sample bodies are not evidence of routability either way — the comments explaining why a tool uses Chat Completions stay.
 
 ### Never invent
 
-API-sourced facts only: id, task, `maxTokens`, input/output price, parameter count. Architecture details (`MoE`, `13B active per token`), language counts, and use-case phrasing may stay while still true, or come from `pricing.description` — never generated. Comparisons that follow from the payload's own prices are allowed. Never invent a tool, an argument, or an example output.
+API-sourced facts only: id, task, `maxTokens`, input/output price, parameter count, `pricing.use_cases`. Architecture details (`MoE`, `13B active per token`), language counts, and use-case phrasing may stay while still true, or come from `pricing.description` — never generated. Comparisons that follow from the payload's own prices are allowed. Never invent an argument or an example output. A new tool is built only as [loop 4](#4-add-what-is-new) describes.
 
-## 4. Verify
+## 5. Verify
 
 Verification gates the PR: nothing is pushed until all of it passes.
 
 ```bash
-python3 .claude/skills/model-sync/scripts/audit-models.py --strict   # expect: only NOTE lines
+python3 .claude/skills/model-sync/scripts/audit-models.py --strict   # expect: 0 finding(s) (NOTE lines are fine)
 make install     # uv sync --all-groups — install uv first with `pip install uv` if it is missing
 make lint        # ruff check + format --check; run `make format` and re-check if only formatting failed
 make mypy
@@ -123,7 +138,7 @@ grep -rn "<old-id>\|<DeletedToolClass>" langchain_zerogpu tests README.md
 git status --short | grep -vE ' (langchain_zerogpu/|tests/|README\.md$|CHANGELOG\.md$|pyproject\.toml$|uv\.lock$)'   # expect: no output
 ```
 
-After step 5's bump and changelog, run the same release check CI runs on the PR:
+After step 6's bump and changelog, run the same release check CI runs on the PR:
 
 ```bash
 git fetch --no-tags origin main
@@ -136,11 +151,11 @@ echo "main $OLD -> PR $NEW, CHANGELOG top: $TOP"   # expect: NEW above OLD, TOP 
 
 If a check fails, fix the cause and re-run it. If it still fails, commit nothing, open no PR, and report the failure with the command output — a broken release is worse than a stale number. CI runs lint, mypy, and unit tests on Python 3.10–3.13 and the release check on the PR.
 
-## 5. Bump, changelog, branch, and open the PR
+## 6. Bump, changelog, branch, and open the PR
 
 Once verification passes, ship it. No questions, no waiting.
 
-**Nothing changed?** If the audit was clean apart from `NOTE` lines and no file was modified, bump nothing, write no changelog, create no branch and no PR. Report "already in sync" and stop.
+**Nothing changed?** If the audit reported 0 findings and no file was modified, bump nothing, write no changelog, create no branch and no PR. Report "already in sync" and stop.
 
 ```bash
 # 1. a fresh branch cut from up-to-date main — never commit on main
@@ -149,17 +164,11 @@ BRANCH="model-sync/$(date -u +%Y-%m-%d-%H%M)"
 git switch --create "$BRANCH" origin/main
 ```
 
-Cutting from `origin/main` makes the branch unique per run and bases the bump on the version `main` actually carries. If edits were made on another branch, carry them over (`git stash` before the switch, `git stash pop` after) and re-run the [verify](#4-verify) commands.
+Cutting from `origin/main` makes the branch unique per run and bases the bump on the version `main` actually carries. If edits were made on another branch, carry them over (`git stash` before the switch, `git stash pop` after) and re-run the [verify](#5-verify) commands.
 
 ### Version
 
-**Every run that changes a file bumps the version**, exactly once, by the highest any change calls for:
-
-| The run… | Command |
-| --- | --- |
-| deleted a tool because its model is gone | `make bump-major` |
-| moved a tool to a renamed model id | `make bump-minor` |
-| anything else — context windows, parameter counts, cost comparisons, descriptions, counts | `make bump` |
+**Every run that changes a file bumps the minor version**, exactly once: `make bump-minor`. Always minor — whatever the run did, including adding a tool, deleting one, renaming a model, or correcting a single number. Never `make bump` (patch) and never `make bump-major`, even for a removal.
 
 Each rewrites `pyproject.toml` and `uv.lock` and nothing else; commit both. Never edit the version by hand — the release refuses when `uv.lock` disagrees.
 
@@ -172,7 +181,11 @@ Write it in the voice of the sections below it — a short narrative paragraph, 
 ```md
 ## [<new version>] - <YYYY-MM-DD>
 
-Model catalog sync: <one or two sentences on what changes for someone using the package — which tools now call a different model, which descriptions were steering agents wrong, which tool is gone>. Tool names and outputs are unchanged apart from the notes below.
+Model catalog sync: <one or two sentences on what changes for someone using the package — which tools now call a different model, which descriptions were steering agents wrong, which tool is new, which tool is gone>. Tool names and outputs are unchanged apart from the notes below.
+
+### Added
+
+- `ZeroGPUExtractSignalsTool` (`zerogpu_extract_signals`) calls `zlm-v1-signal-extract`, which the ZeroGPU API now serves — <what it is for, from the API's description>. The toolkit now returns N+1 tools.
 
 ### Changed
 
@@ -187,8 +200,8 @@ Model catalog sync: <one or two sentences on what changes for someone using the 
 Rules for the section:
 
 - One bullet per user-visible change, class name first, `was → now` in the prose. Group several numbers for one tool into one bullet.
-- Only `### Changed` and `### Removed`. An empty one is deleted, not left as a heading. No `### Added` — the sync never adds a tool. No `### Install` — the release appends one.
-- Do not mention models that got no tool, test edits, or the audit script.
+- Only `### Added`, `### Changed`, and `### Removed`, in that order. An empty one is deleted, not left as a heading. No `### Install` — the release appends one.
+- Do not mention embedding or moderation models, test edits, or the audit script.
 
 ```bash
 # 2. stage only what the sync touched — never `git add -A`
@@ -208,7 +221,8 @@ chore: sync models with dashboard API (v<new version>)
 - ZeroGPUReasonLongContextTool: glm-5.2 context 1M -> 262K; routing hint rewritten (description, README)
 - ZeroGPUReasonTool: gpt-oss-120b parameters 117B -> 120B (docstring)
 - remove ZeroGPUFollowUpQuestionsTool: zlm-v1-followup-questions-edge no longer served
-- version 0.2.4 -> 1.0.0; CHANGELOG section added
+- add ZeroGPUExtractSignalsTool: zlm-v1-signal-extract now served (tool, exports, README, tests)
+- version 0.2.4 -> 0.3.0; CHANGELOG section added
 
 Source: https://api-dashboard.zerogpu.ai/api/models
 
@@ -224,24 +238,28 @@ gh pr create --base main --head "$BRANCH" \
 Automated model-catalog sync. The dashboard API is the source of truth; every value below was taken from it. **Merging publishes `langchain-zerogpu` v<new version> to PyPI** — the release tags it and uses the CHANGELOG section below as the release notes.
 
 ## Version
-<old> → <new> (<patch | minor | major>: <the change that set it>)
+<old> → <new> (minor — every sync is a minor bump)
 
 ## Corrected
 | Tool | Model | Field | Was | Now |
 | --- | --- | --- | --- | --- |
+
+## Added
+| Tool | Model | Template |
+| --- | --- | --- |
 
 ## Renamed
 ## Removed
 <tool class — model gone; what an importer must change>
 
 ## Not changed
-- API models with no tool: <ids>
+- Embedding and moderation models (no client endpoint): <ids>
 
 ## CHANGELOG
 <the new section, verbatim>
 
 ## Verification
-- `audit-models.py --strict` — clean apart from NOTE lines
+- `audit-models.py --strict` — 0 findings
 - `make lint`, `make mypy`, `make test` pass
 - version above `main`'s, `uv.lock` in sync, and the top CHANGELOG section matches it
 
@@ -261,6 +279,6 @@ Rules for this step:
   ```
 - If the push or `gh pr create` fails — no auth, no network, protected branch — the commit still stands on the branch. Report the exact error and the branch name so it can be pushed later. Do not retry in a loop, and do not fall back to committing on `main`.
 
-## 6. Report
+## 7. Report
 
-One pass, no questions: values corrected, claims rewritten, models renamed, tools deleted, the version bump and why, API models with no tool, any claim that could not be sourced, and the PR URL (or the branch name and the exact error if the PR could not be opened).
+One pass, no questions: values corrected, claims rewritten, models renamed, tools deleted, tools created (with the names and template chosen), the minor version bump, embedding and moderation models left without a tool, any claim that could not be sourced, and the PR URL (or the branch name and the exact error if the PR could not be opened).
