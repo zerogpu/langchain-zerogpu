@@ -15,10 +15,13 @@ EXPECTED_MODELS = {
     "zerogpu_reason_multilingual": "qwen3-30b-a3b-fp8",
     "zerogpu_reason_long_context": "glm-5.2",
     "zerogpu_reason_code": "deepseek-v4-flash-0731",
+    "zerogpu_reason_deepseek": "deepseek-v4.1-flash",
+    "zerogpu_moderate": "llama-guard-4-12b",
     "zerogpu_summarize": "llama-3.1-8b-instruct-fast",
     "zerogpu_classify_iab": "zlm-v1-iab-classify-edge",
     "zerogpu_classify_iab_enriched": "zlm-v2-iab-classify-edge-enriched",
     "zerogpu_classify_domain": "zlm-v1-iab-domain-classifier",
+    "zerogpu_extract_signals": "zlm-v1-signal-extract",
     "zerogpu_classify_zero_shot": "deberta-v3-small",
     "zerogpu_classify_structured": "gliner2-base-v1",
     "zerogpu_extract_entities": "gliner2-base-v1",
@@ -50,10 +53,13 @@ def test_model_constants_match_the_api_spec() -> None:
         == EXPECTED_MODELS["zerogpu_reason_long_context"]
     )
     assert tools.MODEL_REASON_CODE == EXPECTED_MODELS["zerogpu_reason_code"]
+    assert tools.MODEL_REASON_DEEPSEEK == EXPECTED_MODELS["zerogpu_reason_deepseek"]
+    assert tools.MODEL_MODERATE == EXPECTED_MODELS["zerogpu_moderate"]
     assert tools.MODEL_SUMMARIZE == EXPECTED_MODELS["zerogpu_summarize"]
     assert tools.MODEL_IAB == EXPECTED_MODELS["zerogpu_classify_iab"]
     assert tools.MODEL_IAB_ENRICHED == EXPECTED_MODELS["zerogpu_classify_iab_enriched"]
     assert tools.MODEL_IAB_DOMAIN == EXPECTED_MODELS["zerogpu_classify_domain"]
+    assert tools.MODEL_EXTRACT_SIGNALS == EXPECTED_MODELS["zerogpu_extract_signals"]
     assert tools.MODEL_ZERO_SHOT == EXPECTED_MODELS["zerogpu_classify_zero_shot"]
     assert tools.MODEL_GLINER == EXPECTED_MODELS["zerogpu_classify_structured"]
     assert tools.MODEL_PII == EXPECTED_MODELS["zerogpu_extract_pii"]

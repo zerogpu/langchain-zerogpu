@@ -18,8 +18,8 @@ Plug in and you're live.
 This package exposes those models as first-class LangChain
 [`BaseTool`](https://python.langchain.com/docs/concepts/tools/) subclasses, so
 any LangChain agent — including `create_agent` and LangGraph graphs — can offload
-these repeatable NLP tasks (classification, summarization, entity / JSON
-extraction, PII redaction, and chat) to ZeroGPU instead of
+these repeatable NLP tasks (classification, summarization, moderation, signal /
+entity / JSON extraction, PII redaction, and chat) to ZeroGPU instead of
 spending frontier-model tokens — plus larger open-weight models for the calls
 that do need reasoning headroom.
 
@@ -63,10 +63,13 @@ The API key is stored as a `pydantic.SecretStr` and is never logged.
 | `ZeroGPUReasonMultilingualTool` | `qwen3-30b-a3b-fp8` | Reasoning across 100+ languages |
 | `ZeroGPUReasonLongContextTool` | `glm-5.2` | Reasoning over a 262K-token context |
 | `ZeroGPUReasonCodeTool` | `deepseek-v4-flash-0731` | Coding and agentic work, 1M context |
+| `ZeroGPUReasonDeepseekTool` | `deepseek-v4.1-flash` | DeepSeek V4.1 Flash reasoning, 1M context |
+| `ZeroGPUModerateTool` | `llama-guard-4-12b` | Safe / unsafe moderation verdict, 160K context |
 | `ZeroGPUSummarizeTool` | `llama-3.1-8b-instruct-fast` | Condense a passage |
 | `ZeroGPUClassifyIABTool` | `zlm-v1-iab-classify-edge` | IAB taxonomy classification |
 | `ZeroGPUClassifyIABEnrichedTool` | `zlm-v2-iab-classify-edge-enriched` | IAB + topics / keywords / intent |
 | `ZeroGPUClassifyDomainTool` | `zlm-v1-iab-domain-classifier` | IAB classification from a domain name |
+| `ZeroGPUExtractSignalsTool` | `zlm-v1-signal-extract` | Topics / keywords / intent signals |
 | `ZeroGPUClassifyZeroShotTool` | `deberta-v3-small` | Zero-shot vs. custom labels |
 | `ZeroGPUClassifyStructuredTool` | `gliner2-base-v1` | Multi-axis schema classification |
 | `ZeroGPUExtractEntitiesTool` | `gliner2-base-v1` | Custom-label NER |
@@ -95,7 +98,7 @@ result = await tool.ainvoke({"text": "...", "labels": ["a", "b"]})
 
 ## Bind the tools to an agent
 
-Use the toolkit to get all sixteen tools — wired to a single shared client — and
+Use the toolkit to get all nineteen tools — wired to a single shared client — and
 bind them to an agent:
 
 ```python

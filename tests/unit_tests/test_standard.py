@@ -20,7 +20,10 @@ from langchain_zerogpu import (
     ZeroGPUExtractEntitiesTool,
     ZeroGPUExtractJSONTool,
     ZeroGPUExtractPIITool,
+    ZeroGPUExtractSignalsTool,
+    ZeroGPUModerateTool,
     ZeroGPUReasonCodeTool,
+    ZeroGPUReasonDeepseekTool,
     ZeroGPUReasonLongContextTool,
     ZeroGPUReasonMultilingualTool,
     ZeroGPUReasonTool,
@@ -102,6 +105,26 @@ class TestZeroGPUReasonCodeToolUnit(_ZeroGPUToolUnitTests):
         return {"text": "Rewrite this callback-style function to use async/await."}
 
 
+class TestZeroGPUReasonDeepseekToolUnit(_ZeroGPUToolUnitTests):
+    @property
+    def tool_constructor(self) -> type[BaseTool]:
+        return ZeroGPUReasonDeepseekTool
+
+    @property
+    def tool_invoke_params_example(self) -> dict[str, Any]:
+        return {"text": "Plan the steps to migrate this service to async I/O."}
+
+
+class TestZeroGPUModerateToolUnit(_ZeroGPUToolUnitTests):
+    @property
+    def tool_constructor(self) -> type[BaseTool]:
+        return ZeroGPUModerateTool
+
+    @property
+    def tool_invoke_params_example(self) -> dict[str, Any]:
+        return {"text": "How do I reset my password? I forgot it again."}
+
+
 class TestZeroGPUSummarizeToolUnit(_ZeroGPUToolUnitTests):
     @property
     def tool_constructor(self) -> type[BaseTool]:
@@ -140,6 +163,16 @@ class TestZeroGPUClassifyDomainToolUnit(_ZeroGPUToolUnitTests):
     @property
     def tool_invoke_params_example(self) -> dict[str, Any]:
         return {"domain": "nytimes.com"}
+
+
+class TestZeroGPUExtractSignalsToolUnit(_ZeroGPUToolUnitTests):
+    @property
+    def tool_constructor(self) -> type[BaseTool]:
+        return ZeroGPUExtractSignalsTool
+
+    @property
+    def tool_invoke_params_example(self) -> dict[str, Any]:
+        return {"text": "Shopping for a family EV with a 300-mile range."}
 
 
 class TestZeroGPUClassifyZeroShotToolUnit(_ZeroGPUToolUnitTests):
