@@ -14,8 +14,11 @@ EXPECTED_MODELS = {
     "zerogpu_reason": "gpt-oss-120b",
     "zerogpu_reason_multilingual": "qwen3-30b-a3b-fp8",
     "zerogpu_reason_long_context": "glm-5.2",
-    "zerogpu_reason_code": "deepseek-v4-flash-0731",
+    "zerogpu_reason_glm": "glm-5.3-flash",
     "zerogpu_reason_deepseek": "deepseek-v4.1-flash",
+    "zerogpu_reason_gpt_luna": "gpt-5.6-luna",
+    "zerogpu_reason_gpt_mini": "gpt-4.1-mini",
+    "zerogpu_reason_gpt_nano": "gpt-5.4-nano",
     "zerogpu_moderate": "llama-guard-4-12b",
     "zerogpu_summarize": "llama-3.1-8b-instruct-fast",
     "zerogpu_classify_iab": "zlm-v1-iab-classify-edge",
@@ -52,8 +55,11 @@ def test_model_constants_match_the_api_spec() -> None:
         tools.MODEL_REASON_LONG_CONTEXT
         == EXPECTED_MODELS["zerogpu_reason_long_context"]
     )
-    assert tools.MODEL_REASON_CODE == EXPECTED_MODELS["zerogpu_reason_code"]
+    assert tools.MODEL_REASON_GLM == EXPECTED_MODELS["zerogpu_reason_glm"]
     assert tools.MODEL_REASON_DEEPSEEK == EXPECTED_MODELS["zerogpu_reason_deepseek"]
+    assert tools.MODEL_REASON_GPT_LUNA == EXPECTED_MODELS["zerogpu_reason_gpt_luna"]
+    assert tools.MODEL_REASON_GPT_MINI == EXPECTED_MODELS["zerogpu_reason_gpt_mini"]
+    assert tools.MODEL_REASON_GPT_NANO == EXPECTED_MODELS["zerogpu_reason_gpt_nano"]
     assert tools.MODEL_MODERATE == EXPECTED_MODELS["zerogpu_moderate"]
     assert tools.MODEL_SUMMARIZE == EXPECTED_MODELS["zerogpu_summarize"]
     assert tools.MODEL_IAB == EXPECTED_MODELS["zerogpu_classify_iab"]

@@ -22,8 +22,11 @@ from langchain_zerogpu import (
     ZeroGPUExtractPIITool,
     ZeroGPUExtractSignalsTool,
     ZeroGPUModerateTool,
-    ZeroGPUReasonCodeTool,
     ZeroGPUReasonDeepseekTool,
+    ZeroGPUReasonGLMTool,
+    ZeroGPUReasonGPTLunaTool,
+    ZeroGPUReasonGPTMiniTool,
+    ZeroGPUReasonGPTNanoTool,
     ZeroGPUReasonLongContextTool,
     ZeroGPUReasonMultilingualTool,
     ZeroGPUReasonTool,
@@ -95,10 +98,10 @@ class TestZeroGPUReasonLongContextToolUnit(_ZeroGPUToolUnitTests):
         return {"text": "Summarize the architecture described above in one line."}
 
 
-class TestZeroGPUReasonCodeToolUnit(_ZeroGPUToolUnitTests):
+class TestZeroGPUReasonGLMToolUnit(_ZeroGPUToolUnitTests):
     @property
     def tool_constructor(self) -> type[BaseTool]:
-        return ZeroGPUReasonCodeTool
+        return ZeroGPUReasonGLMTool
 
     @property
     def tool_invoke_params_example(self) -> dict[str, Any]:
@@ -113,6 +116,36 @@ class TestZeroGPUReasonDeepseekToolUnit(_ZeroGPUToolUnitTests):
     @property
     def tool_invoke_params_example(self) -> dict[str, Any]:
         return {"text": "Plan the steps to migrate this service to async I/O."}
+
+
+class TestZeroGPUReasonGPTLunaToolUnit(_ZeroGPUToolUnitTests):
+    @property
+    def tool_constructor(self) -> type[BaseTool]:
+        return ZeroGPUReasonGPTLunaTool
+
+    @property
+    def tool_invoke_params_example(self) -> dict[str, Any]:
+        return {"text": "Draft a one-paragraph release note for a caching change."}
+
+
+class TestZeroGPUReasonGPTMiniToolUnit(_ZeroGPUToolUnitTests):
+    @property
+    def tool_constructor(self) -> type[BaseTool]:
+        return ZeroGPUReasonGPTMiniTool
+
+    @property
+    def tool_invoke_params_example(self) -> dict[str, Any]:
+        return {"text": "List the fields this JSON payload is missing, one per line."}
+
+
+class TestZeroGPUReasonGPTNanoToolUnit(_ZeroGPUToolUnitTests):
+    @property
+    def tool_constructor(self) -> type[BaseTool]:
+        return ZeroGPUReasonGPTNanoTool
+
+    @property
+    def tool_invoke_params_example(self) -> dict[str, Any]:
+        return {"text": "Route this ticket to billing, support, or sales. One word."}
 
 
 class TestZeroGPUModerateToolUnit(_ZeroGPUToolUnitTests):
