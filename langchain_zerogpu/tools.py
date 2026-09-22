@@ -3,7 +3,7 @@
 Each tool routes a single text-in / structured-out task to a purpose-built
 small or nano ZeroGPU language model through the official ``zerogpu-api`` SDK --
 the repeatable, high-volume work frontier models shouldn't run, at ~10x lower
-latency and 50%+ lower cost. All nineteen tools share the same
+latency and 50%+ lower cost. All twenty-two tools share the same
 credential-resolution and error-handling behaviour via
 :class:`~langchain_zerogpu._client.ZeroGPUClient`.
 
@@ -43,8 +43,11 @@ MODEL_CHAT_THINKING = "LFM2.5-1.2B-Thinking"
 MODEL_REASON = "gpt-oss-120b"
 MODEL_REASON_MULTILINGUAL = "qwen3-30b-a3b-fp8"
 MODEL_REASON_LONG_CONTEXT = "glm-5.2"
-MODEL_REASON_CODE = "deepseek-v4-flash-0731"
+MODEL_REASON_GLM = "glm-5.3-flash"
 MODEL_REASON_DEEPSEEK = "deepseek-v4.1-flash"
+MODEL_REASON_GPT_LUNA = "gpt-5.6-luna"
+MODEL_REASON_GPT_MINI = "gpt-4.1-mini"
+MODEL_REASON_GPT_NANO = "gpt-5.4-nano"
 MODEL_MODERATE = "llama-guard-4-12b"
 MODEL_SUMMARIZE = "llama-3.1-8b-instruct-fast"
 MODEL_IAB = "zlm-v1-iab-classify-edge"
@@ -274,22 +277,22 @@ class ZeroGPUReasonLongContextTool(_BaseZeroGPUTool):
         )
 
 
-class ZeroGPUReasonCodeTool(_BaseZeroGPUTool):
-    """Reasoning answer for coding and agentic work.
+class ZeroGPUReasonGLMTool(_BaseZeroGPUTool):
+    """Reasoning answer for coding and long-horizon agent work.
 
-    Routes to ``deepseek-v4-flash-0731`` (284B parameters, 13B active per token,
+    Routes to ``glm-5.3-flash`` (hybrid sparse and linear attention,
     1,048,576-token context). Served on the Chat Completions endpoint only, so
     it does not use the Responses API.
     """
 
-    name: str = "zerogpu_reason_code"
+    name: str = "zerogpu_reason_glm"
     description: str = (
-        "Answer a coding or multi-step automation prompt -- reading a codebase, "
-        "writing or porting code, planning an agent's next actions -- using a "
-        "284B model with a 1M-token context window. Cheaper than "
-        "zerogpu_reason_long_context and zerogpu_reason_deepseek, and ties the "
-        "latter for the largest context on the platform; prefer it for code or "
-        "tool-use work, or for input too large for the other reasoning tools."
+        "Answer a coding or long-horizon agent prompt -- reading a codebase, "
+        "writing or porting code, planning and running multi-step work -- with "
+        "Z.ai's efficient open-weight model, whose hybrid attention keeps "
+        "long-context behaviour accurate across a 1M-token window, with "
+        "function calling and adjustable reasoning effort. It is the cheapest "
+        "tool with a 1M context, so prefer it for very large inputs."
     )
     args_schema: type[ChatInput] = ChatInput
 
@@ -299,7 +302,7 @@ class ZeroGPUReasonCodeTool(_BaseZeroGPUTool):
         system: str | None = None,
         run_manager: CallbackManagerForToolRun | None = None,
     ) -> str:
-        return self.client.chat(model=MODEL_REASON_CODE, text=text, system=system)
+        return self.client.chat(model=MODEL_REASON_GLM, text=text, system=system)
 
     async def _arun(
         self,
@@ -307,9 +310,7 @@ class ZeroGPUReasonCodeTool(_BaseZeroGPUTool):
         system: str | None = None,
         run_manager: AsyncCallbackManagerForToolRun | None = None,
     ) -> str:
-        return await self.client.achat(
-            model=MODEL_REASON_CODE, text=text, system=system
-        )
+        return await self.client.achat(model=MODEL_REASON_GLM, text=text, system=system)
 
 
 class ZeroGPUReasonDeepseekTool(_BaseZeroGPUTool):
@@ -325,9 +326,10 @@ class ZeroGPUReasonDeepseekTool(_BaseZeroGPUTool):
         "Answer a chat, reasoning, or agentic prompt using DeepSeek's V4.1 "
         "Flash model -- a sparse mixture-of-experts model with a 1M-token "
         "context window, function calling, and both fast and higher-effort "
-        "reasoning modes. It costs about twice as much per input token as "
-        "zerogpu_reason_code, which has the same context window, so prefer "
-        "that tool unless you specifically want the V4.1 generation."
+        "reasoning modes. It costs about 40% more per input token and 60% "
+        "more per output token than zerogpu_reason_glm, which has the same "
+        "context window, so prefer that tool unless you specifically want the "
+        "V4.1 generation."
     )
     args_schema: type[ChatInput] = ChatInput
 
@@ -347,6 +349,117 @@ class ZeroGPUReasonDeepseekTool(_BaseZeroGPUTool):
     ) -> str:
         return await self.client.achat(
             model=MODEL_REASON_DEEPSEEK, text=text, system=system
+        )
+
+
+class ZeroGPUReasonGPTLunaTool(_BaseZeroGPUTool):
+    """Reasoning answer from the cost-optimized model of the GPT-5.6 family.
+
+    Routes to ``gpt-5.6-luna`` (272,000-token context). Served on the Chat
+    Completions endpoint only, so it does not use the Responses API.
+    """
+
+    name: str = "zerogpu_reason_gpt_luna"
+    description: str = (
+        "Answer a coding, chat, reasoning, RAG, summarization, or translation "
+        "prompt with the cost-optimized model of OpenAI's GPT-5.6 family, "
+        "which supports adjustable reasoning effort, function calling, and "
+        "structured outputs over a 272K-token context. Built for "
+        "cost-sensitive, high-volume workloads, though it still costs more "
+        "per token than zerogpu_reason."
+    )
+    args_schema: type[ChatInput] = ChatInput
+
+    def _run(
+        self,
+        text: str,
+        system: str | None = None,
+        run_manager: CallbackManagerForToolRun | None = None,
+    ) -> str:
+        return self.client.chat(model=MODEL_REASON_GPT_LUNA, text=text, system=system)
+
+    async def _arun(
+        self,
+        text: str,
+        system: str | None = None,
+        run_manager: AsyncCallbackManagerForToolRun | None = None,
+    ) -> str:
+        return await self.client.achat(
+            model=MODEL_REASON_GPT_LUNA, text=text, system=system
+        )
+
+
+class ZeroGPUReasonGPTMiniTool(_BaseZeroGPUTool):
+    """Reasoning answer from OpenAI's fast, cost-efficient GPT-4.1 model.
+
+    Routes to ``gpt-4.1-mini`` (1,047,576-token context). Served on the Chat
+    Completions endpoint only, so it does not use the Responses API.
+    """
+
+    name: str = "zerogpu_reason_gpt_mini"
+    description: str = (
+        "Answer a prompt that leans on instruction following and tool calling "
+        "-- coding, chat, RAG, summarization, translation -- with OpenAI's "
+        "GPT-4.1 mini, which supports function calling and structured outputs "
+        "across a 1M-token context at low latency. Apart from "
+        "zerogpu_reason_long_context it is the priciest tool here, so prefer "
+        "zerogpu_reason_glm for large inputs that do not need it."
+    )
+    args_schema: type[ChatInput] = ChatInput
+
+    def _run(
+        self,
+        text: str,
+        system: str | None = None,
+        run_manager: CallbackManagerForToolRun | None = None,
+    ) -> str:
+        return self.client.chat(model=MODEL_REASON_GPT_MINI, text=text, system=system)
+
+    async def _arun(
+        self,
+        text: str,
+        system: str | None = None,
+        run_manager: AsyncCallbackManagerForToolRun | None = None,
+    ) -> str:
+        return await self.client.achat(
+            model=MODEL_REASON_GPT_MINI, text=text, system=system
+        )
+
+
+class ZeroGPUReasonGPTNanoTool(_BaseZeroGPUTool):
+    """Reasoning answer from the most cost-efficient GPT-5.4 model.
+
+    Routes to ``gpt-5.4-nano`` (400,000-token context). Served on the Chat
+    Completions endpoint only, so it does not use the Responses API.
+    """
+
+    name: str = "zerogpu_reason_gpt_nano"
+    description: str = (
+        "Answer a high-volume or latency-sensitive prompt -- classification, "
+        "extraction, routing, sub-agent work -- with the most cost-efficient "
+        "model of OpenAI's GPT-5.4 family, which supports function calling "
+        "and structured outputs over a 400K-token context. The nano chat "
+        "tools and the purpose-built classifiers are cheaper still for the "
+        "work that fits them."
+    )
+    args_schema: type[ChatInput] = ChatInput
+
+    def _run(
+        self,
+        text: str,
+        system: str | None = None,
+        run_manager: CallbackManagerForToolRun | None = None,
+    ) -> str:
+        return self.client.chat(model=MODEL_REASON_GPT_NANO, text=text, system=system)
+
+    async def _arun(
+        self,
+        text: str,
+        system: str | None = None,
+        run_manager: AsyncCallbackManagerForToolRun | None = None,
+    ) -> str:
+        return await self.client.achat(
+            model=MODEL_REASON_GPT_NANO, text=text, system=system
         )
 
 
@@ -847,8 +960,11 @@ ALL_TOOL_CLASSES: list[type[_BaseZeroGPUTool]] = [
     ZeroGPUReasonTool,
     ZeroGPUReasonMultilingualTool,
     ZeroGPUReasonLongContextTool,
-    ZeroGPUReasonCodeTool,
+    ZeroGPUReasonGLMTool,
     ZeroGPUReasonDeepseekTool,
+    ZeroGPUReasonGPTLunaTool,
+    ZeroGPUReasonGPTMiniTool,
+    ZeroGPUReasonGPTNanoTool,
     ZeroGPUModerateTool,
     ZeroGPUSummarizeTool,
     ZeroGPUClassifyIABTool,

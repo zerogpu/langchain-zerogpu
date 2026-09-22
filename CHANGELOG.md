@@ -5,6 +5,50 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2026-09-21
+
+Model catalog sync. The ZeroGPU API no longer serves `deepseek-v4-flash-0731`,
+so `ZeroGPUReasonCodeTool` — which failed on every call — is gone, and the four
+text-generation models the API has added since the last sync now have tools:
+`glm-5.3-flash` picks up the coding and agentic work at a 1M-token context,
+alongside three OpenAI models. Tool names and outputs are unchanged apart from
+the notes below.
+
+### Added
+
+- `ZeroGPUReasonGLMTool` (`zerogpu_reason_glm`) calls `glm-5.3-flash`, Z.ai's
+  efficient open-weight model for coding and long-horizon agent tasks, whose
+  hybrid sparse and linear attention keeps long-context behaviour accurate
+  across a 1M-token window, with function calling and adjustable reasoning
+  effort. It is the cheapest tool with a 1M-token context.
+- `ZeroGPUReasonGPTLunaTool` (`zerogpu_reason_gpt_luna`) calls `gpt-5.6-luna`,
+  the cost-optimized model of OpenAI's GPT-5.6 family, with adjustable
+  reasoning effort, function calling, and structured outputs over a 272K-token
+  context.
+- `ZeroGPUReasonGPTMiniTool` (`zerogpu_reason_gpt_mini`) calls `gpt-4.1-mini`,
+  OpenAI's fast, cost-efficient GPT-4.1 model for instruction following and
+  tool calling across a 1M-token context.
+- `ZeroGPUReasonGPTNanoTool` (`zerogpu_reason_gpt_nano`) calls `gpt-5.4-nano`,
+  the most cost-efficient model of OpenAI's GPT-5.4 family, built for
+  high-volume, latency-sensitive classification, extraction, routing, and
+  sub-agent work over a 400K-token context.
+
+### Changed
+
+- `ZeroGPUReasonDeepseekTool`: the cost comparison in the tool description
+  agents route on pointed at the removed `ZeroGPUReasonCodeTool`. It now points
+  at `ZeroGPUReasonGLMTool`, the tool that keeps the same 1M-token context —
+  `deepseek-v4.1-flash` costs about 40% more per input token and 60% more per
+  output token than `glm-5.3-flash`.
+
+### Removed
+
+- `ZeroGPUReasonCodeTool` (`zerogpu_reason_code`). The ZeroGPU API no longer
+  serves `deepseek-v4-flash-0731`, so the tool failed on every call. Remove it
+  from your imports; `ZeroGPUReasonGLMTool` covers the same coding and agentic
+  work at the same 1M-token context. The toolkit now returns twenty-two tools
+  instead of nineteen.
+
 ## [1.1.0] - 2026-09-17
 
 Model catalog sync. Three models the ZeroGPU API now serves had no tool, so the
@@ -261,6 +305,7 @@ releases whose notes come straight from this changelog.
 - Clear error messages for authentication (401), access (403), rate-limit
   (429), server (5xx), and network failures.
 
+[1.2.0]: https://github.com/zerogpu/langchain-zerogpu/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/zerogpu/langchain-zerogpu/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/zerogpu/langchain-zerogpu/compare/v0.2.4...v1.0.0
 [0.2.4]: https://github.com/zerogpu/langchain-zerogpu/compare/v0.2.3...v0.2.4

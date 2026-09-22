@@ -8,8 +8,11 @@ EXPECTED = [
     "ZeroGPUReasonTool",
     "ZeroGPUReasonMultilingualTool",
     "ZeroGPUReasonLongContextTool",
-    "ZeroGPUReasonCodeTool",
+    "ZeroGPUReasonGLMTool",
     "ZeroGPUReasonDeepseekTool",
+    "ZeroGPUReasonGPTLunaTool",
+    "ZeroGPUReasonGPTMiniTool",
+    "ZeroGPUReasonGPTNanoTool",
     "ZeroGPUModerateTool",
     "ZeroGPUSummarizeTool",
     "ZeroGPUClassifyIABTool",
@@ -31,11 +34,11 @@ def test_all_public_names_exported() -> None:
         assert name in __all__, f"{name} missing from __all__"
 
 
-def test_nineteen_tool_classes_importable() -> None:
+def test_all_tool_classes_importable() -> None:
     import langchain_zerogpu as pkg
 
     tool_names = [name for name in EXPECTED if name != "ZeroGPUToolkit"]
-    assert len(tool_names) == 19
+    assert len(tool_names) == 22
     for name in tool_names:
         assert hasattr(pkg, name), f"{name} not importable from package root"
 
