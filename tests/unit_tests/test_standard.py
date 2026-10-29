@@ -17,6 +17,8 @@ from langchain_zerogpu import (
     ZeroGPUClassifyIABTool,
     ZeroGPUClassifyStructuredTool,
     ZeroGPUClassifyZeroShotTool,
+    ZeroGPUDecideTool,
+    ZeroGPUDecideToolsTool,
     ZeroGPUExtractEntitiesTool,
     ZeroGPUExtractJSONTool,
     ZeroGPUExtractPIITool,
@@ -24,13 +26,15 @@ from langchain_zerogpu import (
     ZeroGPUModerateTool,
     ZeroGPUReasonDeepseekTool,
     ZeroGPUReasonGLMTool,
+    ZeroGPUReasonGPT6LunaTool,
     ZeroGPUReasonGPTLunaTool,
     ZeroGPUReasonGPTMiniTool,
     ZeroGPUReasonGPTNanoTool,
-    ZeroGPUReasonLongContextTool,
     ZeroGPUReasonMultilingualTool,
+    ZeroGPUReasonQwenTool,
     ZeroGPUReasonTool,
     ZeroGPURedactPIITool,
+    ZeroGPUSummarize3BTool,
     ZeroGPUSummarizeTool,
 )
 
@@ -88,14 +92,14 @@ class TestZeroGPUReasonMultilingualToolUnit(_ZeroGPUToolUnitTests):
         return {"text": "¿Cuál es la capital de Japón? Explica brevemente."}
 
 
-class TestZeroGPUReasonLongContextToolUnit(_ZeroGPUToolUnitTests):
+class TestZeroGPUReasonQwenToolUnit(_ZeroGPUToolUnitTests):
     @property
     def tool_constructor(self) -> type[BaseTool]:
-        return ZeroGPUReasonLongContextTool
+        return ZeroGPUReasonQwenTool
 
     @property
     def tool_invoke_params_example(self) -> dict[str, Any]:
-        return {"text": "Summarize the architecture described above in one line."}
+        return {"text": "List the fields this invoice screenshot description names."}
 
 
 class TestZeroGPUReasonGLMToolUnit(_ZeroGPUToolUnitTests):
@@ -126,6 +130,16 @@ class TestZeroGPUReasonGPTLunaToolUnit(_ZeroGPUToolUnitTests):
     @property
     def tool_invoke_params_example(self) -> dict[str, Any]:
         return {"text": "Draft a one-paragraph release note for a caching change."}
+
+
+class TestZeroGPUReasonGPT6LunaToolUnit(_ZeroGPUToolUnitTests):
+    @property
+    def tool_constructor(self) -> type[BaseTool]:
+        return ZeroGPUReasonGPT6LunaTool
+
+    @property
+    def tool_invoke_params_example(self) -> dict[str, Any]:
+        return {"text": "Summarize this changelog entry for a release email."}
 
 
 class TestZeroGPUReasonGPTMiniToolUnit(_ZeroGPUToolUnitTests):
@@ -162,6 +176,16 @@ class TestZeroGPUSummarizeToolUnit(_ZeroGPUToolUnitTests):
     @property
     def tool_constructor(self) -> type[BaseTool]:
         return ZeroGPUSummarizeTool
+
+    @property
+    def tool_invoke_params_example(self) -> dict[str, Any]:
+        return {"text": "A long passage that needs condensing into a TL;DR."}
+
+
+class TestZeroGPUSummarize3BToolUnit(_ZeroGPUToolUnitTests):
+    @property
+    def tool_constructor(self) -> type[BaseTool]:
+        return ZeroGPUSummarize3BTool
 
     @property
     def tool_invoke_params_example(self) -> dict[str, Any]:
@@ -208,6 +232,16 @@ class TestZeroGPUExtractSignalsToolUnit(_ZeroGPUToolUnitTests):
         return {"text": "Shopping for a family EV with a 300-mile range."}
 
 
+class TestZeroGPUDecideToolsToolUnit(_ZeroGPUToolUnitTests):
+    @property
+    def tool_constructor(self) -> type[BaseTool]:
+        return ZeroGPUDecideToolsTool
+
+    @property
+    def tool_invoke_params_example(self) -> dict[str, Any]:
+        return {"text": "Will it rain in Austin this week? Tools: get_forecast."}
+
+
 class TestZeroGPUClassifyZeroShotToolUnit(_ZeroGPUToolUnitTests):
     @property
     def tool_constructor(self) -> type[BaseTool]:
@@ -233,6 +267,22 @@ class TestZeroGPUClassifyStructuredToolUnit(_ZeroGPUToolUnitTests):
             "schema": {
                 "sentiment": ["positive", "negative"],
                 "topic": ["billing", "support"],
+            },
+        }
+
+
+class TestZeroGPUDecideToolUnit(_ZeroGPUToolUnitTests):
+    @property
+    def tool_constructor(self) -> type[BaseTool]:
+        return ZeroGPUDecideTool
+
+    @property
+    def tool_invoke_params_example(self) -> dict[str, Any]:
+        return {
+            "text": "I was charged twice for last month's invoice.",
+            "schema": {
+                "route": ["billing", "support", "sales"],
+                "handoff": ["yes", "no"],
             },
         }
 

@@ -7,10 +7,10 @@ routing, summarization -- at ~10x lower latency and 50%+ lower cost than
 frontier-model workflows.
 
 This package exposes the ZeroGPU task models -- chat, reasoning, moderation,
-summarization, classification, signal / entity / JSON extraction, and PII
-extraction / redaction -- as first-class LangChain
+summarization, classification, routing decisions, signal / entity / JSON
+extraction, and PII extraction / redaction -- as first-class LangChain
 :class:`~langchain_core.tools.BaseTool` subclasses, plus a
-:class:`ZeroGPUToolkit` that bundles all twenty-two behind a single shared
+:class:`ZeroGPUToolkit` that bundles all 26 behind a single shared
 client.
 """
 
@@ -28,6 +28,8 @@ from langchain_zerogpu.tools import (
     ZeroGPUClassifyIABTool,
     ZeroGPUClassifyStructuredTool,
     ZeroGPUClassifyZeroShotTool,
+    ZeroGPUDecideTool,
+    ZeroGPUDecideToolsTool,
     ZeroGPUExtractEntitiesTool,
     ZeroGPUExtractJSONTool,
     ZeroGPUExtractPIITool,
@@ -35,13 +37,15 @@ from langchain_zerogpu.tools import (
     ZeroGPUModerateTool,
     ZeroGPUReasonDeepseekTool,
     ZeroGPUReasonGLMTool,
+    ZeroGPUReasonGPT6LunaTool,
     ZeroGPUReasonGPTLunaTool,
     ZeroGPUReasonGPTMiniTool,
     ZeroGPUReasonGPTNanoTool,
-    ZeroGPUReasonLongContextTool,
     ZeroGPUReasonMultilingualTool,
+    ZeroGPUReasonQwenTool,
     ZeroGPUReasonTool,
     ZeroGPURedactPIITool,
+    ZeroGPUSummarize3BTool,
     ZeroGPUSummarizeTool,
 )
 
@@ -58,20 +62,24 @@ __all__ = [
     "ZeroGPUChatThinkingTool",
     "ZeroGPUReasonTool",
     "ZeroGPUReasonMultilingualTool",
-    "ZeroGPUReasonLongContextTool",
+    "ZeroGPUReasonQwenTool",
     "ZeroGPUReasonGLMTool",
     "ZeroGPUReasonDeepseekTool",
     "ZeroGPUReasonGPTLunaTool",
+    "ZeroGPUReasonGPT6LunaTool",
     "ZeroGPUReasonGPTMiniTool",
     "ZeroGPUReasonGPTNanoTool",
     "ZeroGPUModerateTool",
     "ZeroGPUSummarizeTool",
+    "ZeroGPUSummarize3BTool",
     "ZeroGPUClassifyIABTool",
     "ZeroGPUClassifyIABEnrichedTool",
     "ZeroGPUClassifyDomainTool",
     "ZeroGPUExtractSignalsTool",
+    "ZeroGPUDecideToolsTool",
     "ZeroGPUClassifyZeroShotTool",
     "ZeroGPUClassifyStructuredTool",
+    "ZeroGPUDecideTool",
     "ZeroGPUExtractEntitiesTool",
     "ZeroGPUExtractPIITool",
     "ZeroGPURedactPIITool",

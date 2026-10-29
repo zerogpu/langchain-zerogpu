@@ -18,8 +18,9 @@ Plug in and you're live.
 This package exposes those models as first-class LangChain
 [`BaseTool`](https://python.langchain.com/docs/concepts/tools/) subclasses, so
 any LangChain agent — including `create_agent` and LangGraph graphs — can offload
-these repeatable NLP tasks (classification, summarization, moderation, signal /
-entity / JSON extraction, PII redaction, and chat) to ZeroGPU instead of
+these repeatable NLP tasks (classification, summarization, moderation, routing
+decisions, signal / entity / JSON extraction, PII redaction, and chat) to
+ZeroGPU instead of
 spending frontier-model tokens — plus larger open-weight models for the calls
 that do need reasoning headroom.
 
@@ -61,24 +62,28 @@ The API key is stored as a `pydantic.SecretStr` and is never logged.
 | `ZeroGPUChatThinkingTool` | `LFM2.5-1.2B-Thinking` | Chat with a visible reasoning trace |
 | `ZeroGPUReasonTool` | `gpt-oss-120b` | Heavier reasoning, 131K context |
 | `ZeroGPUReasonMultilingualTool` | `qwen3-30b-a3b-fp8` | Reasoning across 100+ languages |
-| `ZeroGPUReasonLongContextTool` | `glm-5.2` | Reasoning over a 262K-token context |
+| `ZeroGPUReasonQwenTool` | `qwen3.6-35b-a3b` | Fast 35B MoE reasoning, 16K context |
 | `ZeroGPUReasonGLMTool` | `glm-5.3-flash` | Coding and agentic work, 1M context |
 | `ZeroGPUReasonDeepseekTool` | `deepseek-v4.1-flash` | DeepSeek V4.1 Flash reasoning, 1M context |
 | `ZeroGPUReasonGPTLunaTool` | `gpt-5.6-luna` | Cost-optimized GPT-5.6, 272K context |
+| `ZeroGPUReasonGPT6LunaTool` | `gpt-6-luna` | Most efficient GPT-6, 272K context |
 | `ZeroGPUReasonGPTMiniTool` | `gpt-4.1-mini` | GPT-4.1 mini, 1M context |
 | `ZeroGPUReasonGPTNanoTool` | `gpt-5.4-nano` | Cost-efficient GPT-5.4, 400K context |
 | `ZeroGPUModerateTool` | `llama-guard-4-12b` | Safe / unsafe moderation verdict, 160K context |
 | `ZeroGPUSummarizeTool` | `llama-3.1-8b-instruct-fast` | Condense a passage |
+| `ZeroGPUSummarize3BTool` | `llama-3.2-3b-instruct-fast` | Condense a passage with a cheaper 3B model |
 | `ZeroGPUClassifyIABTool` | `zlm-v1-iab-classify-edge` | IAB taxonomy classification |
 | `ZeroGPUClassifyIABEnrichedTool` | `zlm-v2-iab-classify-edge-enriched` | IAB + topics / keywords / intent |
 | `ZeroGPUClassifyDomainTool` | `zlm-v1-iab-domain-classifier` | IAB classification from a domain name |
 | `ZeroGPUExtractSignalsTool` | `zlm-v1-signal-extract` | Topics / keywords / intent signals |
+| `ZeroGPUDecideToolsTool` | `zlm-v1-tool-decisions` | Pick a tool and generate its arguments |
 | `ZeroGPUClassifyZeroShotTool` | `deberta-v3-small` | Zero-shot vs. custom labels |
-| `ZeroGPUClassifyStructuredTool` | `gliner2-base-v1` | Multi-axis schema classification |
-| `ZeroGPUExtractEntitiesTool` | `gliner2-base-v1` | Custom-label NER |
-| `ZeroGPUExtractPIITool` | `gliner-multi-pii-v1` | Extract PII entities (JSON) |
-| `ZeroGPURedactPIITool` | `gliner-multi-pii-v1` | Mask PII inline with `[LABEL]` |
-| `ZeroGPUExtractJSONTool` | `gliner2-base-v1` | Schema-driven JSON extraction |
+| `ZeroGPUClassifyStructuredTool` | `gliner2.5-base-v1` | Multi-axis schema classification |
+| `ZeroGPUDecideTool` | `gliner2.5-decide-v1` | Zero-shot decisions and routing |
+| `ZeroGPUExtractEntitiesTool` | `gliner2.5-base-v1` | Custom-label NER |
+| `ZeroGPUExtractPIITool` | `gliner2.5-multi-v1` | Extract PII entities (JSON) |
+| `ZeroGPURedactPIITool` | `gliner2.5-multi-v1` | Mask PII inline with `[LABEL]` |
+| `ZeroGPUExtractJSONTool` | `gliner2.5-base-v1` | Schema-driven JSON extraction |
 
 ## Quick start
 
@@ -101,7 +106,7 @@ result = await tool.ainvoke({"text": "...", "labels": ["a", "b"]})
 
 ## Bind the tools to an agent
 
-Use the toolkit to get all twenty-two tools — wired to a single shared client — and
+Use the toolkit to get all 26 tools — wired to a single shared client — and
 bind them to an agent:
 
 ```python

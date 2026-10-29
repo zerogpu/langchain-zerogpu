@@ -3,7 +3,7 @@
 Each tool routes a single text-in / structured-out task to a purpose-built
 small or nano ZeroGPU language model through the official ``zerogpu-api`` SDK --
 the repeatable, high-volume work frontier models shouldn't run, at ~10x lower
-latency and 50%+ lower cost. All twenty-two tools share the same
+latency and 50%+ lower cost. All 26 tools share the same
 credential-resolution and error-handling behaviour via
 :class:`~langchain_zerogpu._client.ZeroGPUClient`.
 
@@ -42,21 +42,25 @@ MODEL_CHAT = "LFM2.5-1.2B-Instruct"
 MODEL_CHAT_THINKING = "LFM2.5-1.2B-Thinking"
 MODEL_REASON = "gpt-oss-120b"
 MODEL_REASON_MULTILINGUAL = "qwen3-30b-a3b-fp8"
-MODEL_REASON_LONG_CONTEXT = "glm-5.2"
+MODEL_REASON_QWEN = "qwen3.6-35b-a3b"
 MODEL_REASON_GLM = "glm-5.3-flash"
 MODEL_REASON_DEEPSEEK = "deepseek-v4.1-flash"
 MODEL_REASON_GPT_LUNA = "gpt-5.6-luna"
+MODEL_REASON_GPT6_LUNA = "gpt-6-luna"
 MODEL_REASON_GPT_MINI = "gpt-4.1-mini"
 MODEL_REASON_GPT_NANO = "gpt-5.4-nano"
 MODEL_MODERATE = "llama-guard-4-12b"
 MODEL_SUMMARIZE = "llama-3.1-8b-instruct-fast"
+MODEL_SUMMARIZE_3B = "llama-3.2-3b-instruct-fast"
 MODEL_IAB = "zlm-v1-iab-classify-edge"
 MODEL_IAB_ENRICHED = "zlm-v2-iab-classify-edge-enriched"
 MODEL_IAB_DOMAIN = "zlm-v1-iab-domain-classifier"
 MODEL_EXTRACT_SIGNALS = "zlm-v1-signal-extract"
+MODEL_DECIDE_TOOLS = "zlm-v1-tool-decisions"
 MODEL_ZERO_SHOT = "deberta-v3-small"
-MODEL_GLINER = "gliner2-base-v1"
-MODEL_PII = "gliner-multi-pii-v1"
+MODEL_GLINER = "gliner2.5-base-v1"
+MODEL_DECIDE = "gliner2.5-decide-v1"
+MODEL_PII = "gliner2.5-multi-v1"
 
 
 class _BaseZeroGPUTool(BaseTool):
@@ -237,22 +241,22 @@ class ZeroGPUReasonMultilingualTool(_BaseZeroGPUTool):
         )
 
 
-class ZeroGPUReasonLongContextTool(_BaseZeroGPUTool):
-    """Reasoning answer over a very large input.
+class ZeroGPUReasonQwenTool(_BaseZeroGPUTool):
+    """Reasoning answer from a fast, open-weight multimodal model.
 
-    Routes to ``glm-5.2`` (753B parameters, 262K-token context). Served on
-    the Chat Completions endpoint only, so it does not use the Responses API.
-    The most capable model on the platform and by some distance the priciest --
-    roughly six to seven times ``zerogpu_reason`` per token.
+    Routes to ``qwen3.6-35b-a3b`` (35B-parameter mixture-of-experts, 16K-token
+    context). Served on the Chat Completions endpoint only, so it does not use
+    the Responses API. Built for document, screenshot, and content
+    understanding; this tool sends the text side of that work.
     """
 
-    name: str = "zerogpu_reason_long_context"
+    name: str = "zerogpu_reason_qwen"
     description: str = (
-        "Answer a prompt whose input is very large -- an entire repository, a "
-        "book-length document, a long agent transcript -- using a 753B model "
-        "with a 262K-token context window. This is the most capable and the "
-        "most expensive ZeroGPU model by a wide margin: prefer zerogpu_reason "
-        "unless the input genuinely does not fit in its 131K context."
+        "Answer a chat, document-understanding, content-extraction, or "
+        "tool-calling prompt with a fast 35B mixture-of-experts model that "
+        "supports structured outputs. Its 16K-token context is the smallest "
+        "of the reasoning tools, so prefer zerogpu_reason_glm for large "
+        "inputs."
     )
     args_schema: type[ChatInput] = ChatInput
 
@@ -262,9 +266,7 @@ class ZeroGPUReasonLongContextTool(_BaseZeroGPUTool):
         system: str | None = None,
         run_manager: CallbackManagerForToolRun | None = None,
     ) -> str:
-        return self.client.chat(
-            model=MODEL_REASON_LONG_CONTEXT, text=text, system=system
-        )
+        return self.client.chat(model=MODEL_REASON_QWEN, text=text, system=system)
 
     async def _arun(
         self,
@@ -273,7 +275,7 @@ class ZeroGPUReasonLongContextTool(_BaseZeroGPUTool):
         run_manager: AsyncCallbackManagerForToolRun | None = None,
     ) -> str:
         return await self.client.achat(
-            model=MODEL_REASON_LONG_CONTEXT, text=text, system=system
+            model=MODEL_REASON_QWEN, text=text, system=system
         )
 
 
@@ -326,10 +328,10 @@ class ZeroGPUReasonDeepseekTool(_BaseZeroGPUTool):
         "Answer a chat, reasoning, or agentic prompt using DeepSeek's V4.1 "
         "Flash model -- a sparse mixture-of-experts model with a 1M-token "
         "context window, function calling, and both fast and higher-effort "
-        "reasoning modes. It costs about 40% more per input token and 60% "
-        "more per output token than zerogpu_reason_glm, which has the same "
-        "context window, so prefer that tool unless you specifically want the "
-        "V4.1 generation."
+        "reasoning modes. It costs about three times as much per input token "
+        "and three and a half times as much per output token as "
+        "zerogpu_reason_glm, which has the same context window, so prefer "
+        "that tool unless you specifically want the V4.1 generation."
     )
     args_schema: type[ChatInput] = ChatInput
 
@@ -365,8 +367,9 @@ class ZeroGPUReasonGPTLunaTool(_BaseZeroGPUTool):
         "prompt with the cost-optimized model of OpenAI's GPT-5.6 family, "
         "which supports adjustable reasoning effort, function calling, and "
         "structured outputs over a 272K-token context. Built for "
-        "cost-sensitive, high-volume workloads, though it still costs more "
-        "per token than zerogpu_reason."
+        "cost-sensitive, high-volume workloads, though it costs more per "
+        "token than both zerogpu_reason and zerogpu_reason_gpt6_luna, which "
+        "has the same 272K-token context."
     )
     args_schema: type[ChatInput] = ChatInput
 
@@ -389,6 +392,44 @@ class ZeroGPUReasonGPTLunaTool(_BaseZeroGPUTool):
         )
 
 
+class ZeroGPUReasonGPT6LunaTool(_BaseZeroGPUTool):
+    """Reasoning answer from the most efficient model of the GPT-6 family.
+
+    Routes to ``gpt-6-luna`` (272,000-token context). Served on the Chat
+    Completions endpoint only, so it does not use the Responses API.
+    """
+
+    name: str = "zerogpu_reason_gpt6_luna"
+    description: str = (
+        "Answer a coding, chat, reasoning, RAG, summarization, or translation "
+        "prompt with the most efficient model of OpenAI's GPT-6 family, built "
+        "for high-volume, cost-sensitive work, with adjustable reasoning "
+        "effort, function calling, and structured outputs over a 272K-token "
+        "context. It costs half as much per input token and well under half "
+        "as much per output token as zerogpu_reason_gpt_luna, which has the "
+        "same context window."
+    )
+    args_schema: type[ChatInput] = ChatInput
+
+    def _run(
+        self,
+        text: str,
+        system: str | None = None,
+        run_manager: CallbackManagerForToolRun | None = None,
+    ) -> str:
+        return self.client.chat(model=MODEL_REASON_GPT6_LUNA, text=text, system=system)
+
+    async def _arun(
+        self,
+        text: str,
+        system: str | None = None,
+        run_manager: AsyncCallbackManagerForToolRun | None = None,
+    ) -> str:
+        return await self.client.achat(
+            model=MODEL_REASON_GPT6_LUNA, text=text, system=system
+        )
+
+
 class ZeroGPUReasonGPTMiniTool(_BaseZeroGPUTool):
     """Reasoning answer from OpenAI's fast, cost-efficient GPT-4.1 model.
 
@@ -401,9 +442,9 @@ class ZeroGPUReasonGPTMiniTool(_BaseZeroGPUTool):
         "Answer a prompt that leans on instruction following and tool calling "
         "-- coding, chat, RAG, summarization, translation -- with OpenAI's "
         "GPT-4.1 mini, which supports function calling and structured outputs "
-        "across a 1M-token context at low latency. Apart from "
-        "zerogpu_reason_long_context it is the priciest tool here, so prefer "
-        "zerogpu_reason_glm for large inputs that do not need it."
+        "across a 1M-token context at low latency. It is the priciest tool "
+        "here per token, so prefer zerogpu_reason_glm for large inputs that "
+        "do not need it."
     )
     args_schema: type[ChatInput] = ChatInput
 
@@ -543,6 +584,42 @@ class ZeroGPUSummarizeTool(_BaseZeroGPUTool):
         )
 
 
+class ZeroGPUSummarize3BTool(_BaseZeroGPUTool):
+    """Condense a passage into a short summary with a smaller, cheaper model.
+
+    Routes to ``llama-3.2-3b-instruct-fast`` (3B parameters, 131K-token
+    context) over Chat Completions, whose summarization pipeline it shares
+    with ``llama-3.1-8b-instruct-fast``.
+    """
+
+    name: str = "zerogpu_summarize_3b"
+    description: str = (
+        "Summarize / condense a passage of text into a short TL;DR using a "
+        "fast 3B edge model. It costs a third as much per input token as "
+        "zerogpu_summarize and a touch more per output token, so prefer it "
+        "for high-volume summarization of long passages."
+    )
+    args_schema: type[TextInput] = TextInput
+
+    def _run(
+        self,
+        text: str,
+        run_manager: CallbackManagerForToolRun | None = None,
+    ) -> str:
+        return self.client.chat(
+            model=MODEL_SUMMARIZE_3B, text=text, system=SUMMARIZE_INSTRUCTION
+        )
+
+    async def _arun(
+        self,
+        text: str,
+        run_manager: AsyncCallbackManagerForToolRun | None = None,
+    ) -> str:
+        return await self.client.achat(
+            model=MODEL_SUMMARIZE_3B, text=text, system=SUMMARIZE_INSTRUCTION
+        )
+
+
 class ZeroGPUClassifyIABTool(_BaseZeroGPUTool):
     """Classify text into the IAB content taxonomy.
 
@@ -673,6 +750,48 @@ class ZeroGPUExtractSignalsTool(_BaseZeroGPUTool):
         )
 
 
+class ZeroGPUDecideToolsTool(_BaseZeroGPUTool):
+    """Pick the tool a request needs and generate its arguments.
+
+    Routes to ``zlm-v1-tool-decisions`` (0.6B parameters, 24K-token context).
+    Selection and argument generation happen in a single inference step, and
+    the model returns ``NO_TOOL`` when no tool is needed. Returns the parsed
+    decision payload.
+    """
+
+    name: str = "zerogpu_decide_tools"
+    description: str = (
+        "Decide which tool a request needs and generate the query or "
+        "arguments to call it with, in one step, using a 0.6B model built for "
+        "agent tool selection. Returns NO_TOOL when no tool is needed. "
+        "Describe the available tools in the text or the system prompt. Far "
+        "cheaper than asking a reasoning tool to route."
+    )
+    args_schema: type[ChatInput] = ChatInput
+
+    def _run(
+        self,
+        text: str,
+        system: str | None = None,
+        run_manager: CallbackManagerForToolRun | None = None,
+    ) -> t.Any:
+        return maybe_json(
+            self.client.responses(model=MODEL_DECIDE_TOOLS, text=text, system=system)
+        )
+
+    async def _arun(
+        self,
+        text: str,
+        system: str | None = None,
+        run_manager: AsyncCallbackManagerForToolRun | None = None,
+    ) -> t.Any:
+        return maybe_json(
+            await self.client.aresponses(
+                model=MODEL_DECIDE_TOOLS, text=text, system=system
+            )
+        )
+
+
 class ZeroGPUClassifyZeroShotTool(_BaseZeroGPUTool):
     """Zero-shot classification against a caller-supplied flat list of labels.
 
@@ -720,7 +839,7 @@ class ZeroGPUClassifyZeroShotTool(_BaseZeroGPUTool):
 class ZeroGPUClassifyStructuredTool(_BaseZeroGPUTool):
     """Multi-axis classification driven by a labelled schema.
 
-    Routes to ``gliner2-base-v1`` with ``usecase="classification"``. The
+    Routes to ``gliner2.5-base-v1`` with ``usecase="classification"``. The
     ``schema`` maps each axis to its candidate labels.
     """
 
@@ -763,11 +882,61 @@ class ZeroGPUClassifyStructuredTool(_BaseZeroGPUTool):
         )
 
 
+class ZeroGPUDecideTool(_BaseZeroGPUTool):
+    """Zero-shot operational decisions against caller-supplied options.
+
+    Routes to ``gliner2.5-decide-v1`` (486M parameters) with
+    ``usecase="classification"``. The ``schema`` maps each decision to its
+    options, and several decisions are answered in a single call.
+    """
+
+    name: str = "zerogpu_decide"
+    description: str = (
+        "Make an operational decision about text -- classify intent, route "
+        "agents and tools, triage a request, decide on moderation, detect "
+        "completion or human handoff -- against options supplied at request "
+        'time, e.g. {"route": ["billing", "support"], "handoff": ["yes", '
+        '"no"]}. Answers several decisions in one call and is the cheapest '
+        "tool here per input token."
+    )
+    args_schema: type[StructuredClassifyInput] = StructuredClassifyInput
+
+    def _run(
+        self,
+        text: str,
+        schema: dict[str, t.Any],
+        threshold: float | None = None,
+        run_manager: CallbackManagerForToolRun | None = None,
+    ) -> t.Any:
+        metadata = _gliner_metadata(
+            usecase="classification", schema=schema, threshold=threshold
+        )
+        return maybe_json(
+            self.client.responses(model=MODEL_DECIDE, text=text, metadata=metadata)
+        )
+
+    async def _arun(
+        self,
+        text: str,
+        schema: dict[str, t.Any],
+        threshold: float | None = None,
+        run_manager: AsyncCallbackManagerForToolRun | None = None,
+    ) -> t.Any:
+        metadata = _gliner_metadata(
+            usecase="classification", schema=schema, threshold=threshold
+        )
+        return maybe_json(
+            await self.client.aresponses(
+                model=MODEL_DECIDE, text=text, metadata=metadata
+            )
+        )
+
+
 class ZeroGPUExtractEntitiesTool(_BaseZeroGPUTool):
     """Custom-label named-entity recognition.
 
-    Routes to ``gliner2-base-v1`` with ``usecase="ner"``. Extracts spans for
-    each entity type listed in ``labels``.
+    Routes to ``gliner2.5-base-v1`` with ``usecase="ner"``. Extracts spans
+    for each entity type listed in ``labels``.
     """
 
     name: str = "zerogpu_extract_entities"
@@ -808,7 +977,7 @@ class ZeroGPUExtractEntitiesTool(_BaseZeroGPUTool):
 class ZeroGPUExtractPIITool(_BaseZeroGPUTool):
     """Extract PII entities from text, grouped by category.
 
-    Routes to ``gliner-multi-pii-v1`` with ``usecase="extract-pii"``.
+    Routes to ``gliner2.5-multi-v1`` with ``usecase="extract-pii"``.
     """
 
     name: str = "zerogpu_extract_pii"
@@ -851,7 +1020,7 @@ class ZeroGPUExtractPIITool(_BaseZeroGPUTool):
 class ZeroGPURedactPIITool(_BaseZeroGPUTool):
     """Mask PII inline, replacing each match with a ``[LABEL]`` placeholder.
 
-    Routes to ``gliner-multi-pii-v1`` with ``usecase="redact"`` and
+    Routes to ``gliner2.5-multi-v1`` with ``usecase="redact"`` and
     ``mask="label"``. Returns the redacted text.
     """
 
@@ -893,7 +1062,7 @@ class ZeroGPURedactPIITool(_BaseZeroGPUTool):
 class ZeroGPUExtractJSONTool(_BaseZeroGPUTool):
     """Schema-driven JSON extraction.
 
-    Routes to ``gliner2-base-v1`` with ``usecase="json"``. The grouped
+    Routes to ``gliner2.5-base-v1`` with ``usecase="json"``. The grouped
     ``schema`` declares the fields to pull out.
     """
 
@@ -959,20 +1128,24 @@ ALL_TOOL_CLASSES: list[type[_BaseZeroGPUTool]] = [
     ZeroGPUChatThinkingTool,
     ZeroGPUReasonTool,
     ZeroGPUReasonMultilingualTool,
-    ZeroGPUReasonLongContextTool,
+    ZeroGPUReasonQwenTool,
     ZeroGPUReasonGLMTool,
     ZeroGPUReasonDeepseekTool,
     ZeroGPUReasonGPTLunaTool,
+    ZeroGPUReasonGPT6LunaTool,
     ZeroGPUReasonGPTMiniTool,
     ZeroGPUReasonGPTNanoTool,
     ZeroGPUModerateTool,
     ZeroGPUSummarizeTool,
+    ZeroGPUSummarize3BTool,
     ZeroGPUClassifyIABTool,
     ZeroGPUClassifyIABEnrichedTool,
     ZeroGPUClassifyDomainTool,
     ZeroGPUExtractSignalsTool,
+    ZeroGPUDecideToolsTool,
     ZeroGPUClassifyZeroShotTool,
     ZeroGPUClassifyStructuredTool,
+    ZeroGPUDecideTool,
     ZeroGPUExtractEntitiesTool,
     ZeroGPUExtractPIITool,
     ZeroGPURedactPIITool,
