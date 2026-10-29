@@ -5,6 +5,68 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.0] - 2026-10-29
+
+Model catalog sync. The ZeroGPU API no longer serves `glm-5.2`, so
+`ZeroGPUReasonLongContextTool` — which failed on every call — is gone, and the
+GLiNER models behind the structured-extraction and PII tools have moved to the
+GLiNER2.5 generation. Five models the API has added since the last sync now
+have tools: a multimodal Qwen reasoner, OpenAI's GPT-6 Luna, a cheaper 3B
+summarizer, and two decision models for routing work. Tool names and outputs
+are unchanged apart from the notes below.
+
+### Added
+
+- `ZeroGPUReasonQwenTool` (`zerogpu_reason_qwen`) calls `qwen3.6-35b-a3b`, a
+  fast 35B mixture-of-experts model for document, screenshot, and content
+  understanding, with structured output support over a 16K-token context — the
+  smallest context of the reasoning tools.
+- `ZeroGPUReasonGPT6LunaTool` (`zerogpu_reason_gpt6_luna`) calls `gpt-6-luna`,
+  the most efficient model of OpenAI's GPT-6 family, with adjustable reasoning
+  effort, function calling, and structured outputs over a 272K-token context.
+  It costs half as much per input token as `ZeroGPUReasonGPTLunaTool` at the
+  same context window.
+- `ZeroGPUSummarize3BTool` (`zerogpu_summarize_3b`) calls
+  `llama-3.2-3b-instruct-fast`, which shares `llama-3.1-8b-instruct-fast`'s
+  summarization pipeline and 131K-token context at a third of its input price.
+- `ZeroGPUDecideTool` (`zerogpu_decide`) calls `gliner2.5-decide-v1`, a
+  zero-shot decision model for intent classification, agent and tool routing,
+  triage, moderation decisions, and human handoff, answering several decisions
+  in one call against options supplied at request time. It is the cheapest
+  model in the package per input token.
+- `ZeroGPUDecideToolsTool` (`zerogpu_decide_tools`) calls
+  `zlm-v1-tool-decisions`, which picks the tool a request needs and generates
+  the query or arguments to call it with in a single inference step, returning
+  `NO_TOOL` when no tool is needed.
+
+### Changed
+
+- `ZeroGPUClassifyStructuredTool`, `ZeroGPUExtractEntitiesTool`, and
+  `ZeroGPUExtractJSONTool` now call `gliner2.5-base-v1`. The ZeroGPU API no
+  longer serves `gliner2-base-v1`, and `gliner2.5-base-v1` is the schema-based
+  extraction model it serves in its place.
+- `ZeroGPUExtractPIITool` and `ZeroGPURedactPIITool` now call
+  `gliner2.5-multi-v1`, the multilingual GLiNER2.5 extraction model. The API no
+  longer serves `gliner-multi-pii-v1`.
+- `ZeroGPUReasonDeepseekTool`: the cost comparison in the tool description
+  agents route on no longer held. `deepseek-v4.1-flash` costs about three times
+  as much per input token and three and a half times as much per output token
+  as `glm-5.3-flash` — not 40% and 60% more — so the preference for
+  `ZeroGPUReasonGLMTool` at the same 1M-token context is now a wide one.
+- `ZeroGPUReasonGPTMiniTool`: its description named the removed
+  `ZeroGPUReasonLongContextTool` as the only pricier tool. `gpt-4.1-mini` is
+  now the priciest model in the package per token, and the description says so.
+- `ZeroGPUReasonGPTLunaTool`: its description now points agents at the cheaper
+  `ZeroGPUReasonGPT6LunaTool`, which has the same 272K-token context.
+
+### Removed
+
+- `ZeroGPUReasonLongContextTool` (`zerogpu_reason_long_context`). The ZeroGPU
+  API no longer serves `glm-5.2`, so the tool failed on every call. Remove it
+  from your imports; `ZeroGPUReasonGLMTool` handles very large inputs at a
+  1M-token context. With the five tools added above, the toolkit now returns
+  twenty-six tools instead of twenty-two.
+
 ## [1.2.0] - 2026-09-21
 
 Model catalog sync. The ZeroGPU API no longer serves `deepseek-v4-flash-0731`,
@@ -305,6 +367,7 @@ releases whose notes come straight from this changelog.
 - Clear error messages for authentication (401), access (403), rate-limit
   (429), server (5xx), and network failures.
 
+[1.3.0]: https://github.com/zerogpu/langchain-zerogpu/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/zerogpu/langchain-zerogpu/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/zerogpu/langchain-zerogpu/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/zerogpu/langchain-zerogpu/compare/v0.2.4...v1.0.0

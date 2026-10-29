@@ -19,6 +19,8 @@ from langchain_zerogpu import (
     ZeroGPUClassifyIABTool,
     ZeroGPUClassifyStructuredTool,
     ZeroGPUClassifyZeroShotTool,
+    ZeroGPUDecideTool,
+    ZeroGPUDecideToolsTool,
     ZeroGPUExtractEntitiesTool,
     ZeroGPUExtractJSONTool,
     ZeroGPUExtractPIITool,
@@ -26,13 +28,15 @@ from langchain_zerogpu import (
     ZeroGPUModerateTool,
     ZeroGPUReasonDeepseekTool,
     ZeroGPUReasonGLMTool,
+    ZeroGPUReasonGPT6LunaTool,
     ZeroGPUReasonGPTLunaTool,
     ZeroGPUReasonGPTMiniTool,
     ZeroGPUReasonGPTNanoTool,
-    ZeroGPUReasonLongContextTool,
     ZeroGPUReasonMultilingualTool,
+    ZeroGPUReasonQwenTool,
     ZeroGPUReasonTool,
     ZeroGPURedactPIITool,
+    ZeroGPUSummarize3BTool,
     ZeroGPUSummarizeTool,
 )
 
@@ -82,14 +86,14 @@ class TestZeroGPUReasonMultilingualToolIntegration(ToolsIntegrationTests):
         return {"text": "¿Cuál es la capital de Japón? Explica brevemente."}
 
 
-class TestZeroGPUReasonLongContextToolIntegration(ToolsIntegrationTests):
+class TestZeroGPUReasonQwenToolIntegration(ToolsIntegrationTests):
     @property
     def tool_constructor(self) -> type[BaseTool]:
-        return ZeroGPUReasonLongContextTool
+        return ZeroGPUReasonQwenTool
 
     @property
     def tool_invoke_params_example(self) -> dict[str, Any]:
-        return {"text": "Summarize the architecture described above in one line."}
+        return {"text": "List the fields this invoice screenshot description names."}
 
 
 class TestZeroGPUReasonGLMToolIntegration(ToolsIntegrationTests):
@@ -120,6 +124,16 @@ class TestZeroGPUReasonGPTLunaToolIntegration(ToolsIntegrationTests):
     @property
     def tool_invoke_params_example(self) -> dict[str, Any]:
         return {"text": "Draft a one-paragraph release note for a caching change."}
+
+
+class TestZeroGPUReasonGPT6LunaToolIntegration(ToolsIntegrationTests):
+    @property
+    def tool_constructor(self) -> type[BaseTool]:
+        return ZeroGPUReasonGPT6LunaTool
+
+    @property
+    def tool_invoke_params_example(self) -> dict[str, Any]:
+        return {"text": "Summarize this changelog entry for a release email."}
 
 
 class TestZeroGPUReasonGPTMiniToolIntegration(ToolsIntegrationTests):
@@ -156,6 +170,22 @@ class TestZeroGPUSummarizeToolIntegration(ToolsIntegrationTests):
     @property
     def tool_constructor(self) -> type[BaseTool]:
         return ZeroGPUSummarizeTool
+
+    @property
+    def tool_invoke_params_example(self) -> dict[str, Any]:
+        return {
+            "text": (
+                "ZeroGPU runs small task models at the edge so that agents can "
+                "offload cheap NLP work instead of spending frontier tokens. "
+                "It supports classification, extraction, summarization and more."
+            )
+        }
+
+
+class TestZeroGPUSummarize3BToolIntegration(ToolsIntegrationTests):
+    @property
+    def tool_constructor(self) -> type[BaseTool]:
+        return ZeroGPUSummarize3BTool
 
     @property
     def tool_invoke_params_example(self) -> dict[str, Any]:
@@ -208,6 +238,16 @@ class TestZeroGPUExtractSignalsToolIntegration(ToolsIntegrationTests):
         return {"text": "Shopping for a family EV with a 300-mile range."}
 
 
+class TestZeroGPUDecideToolsToolIntegration(ToolsIntegrationTests):
+    @property
+    def tool_constructor(self) -> type[BaseTool]:
+        return ZeroGPUDecideToolsTool
+
+    @property
+    def tool_invoke_params_example(self) -> dict[str, Any]:
+        return {"text": "Will it rain in Austin this week? Tools: get_forecast."}
+
+
 class TestZeroGPUClassifyZeroShotToolIntegration(ToolsIntegrationTests):
     @property
     def tool_constructor(self) -> type[BaseTool]:
@@ -233,6 +273,22 @@ class TestZeroGPUClassifyStructuredToolIntegration(ToolsIntegrationTests):
             "schema": {
                 "sentiment": ["positive", "negative"],
                 "topic": ["billing", "support"],
+            },
+        }
+
+
+class TestZeroGPUDecideToolIntegration(ToolsIntegrationTests):
+    @property
+    def tool_constructor(self) -> type[BaseTool]:
+        return ZeroGPUDecideTool
+
+    @property
+    def tool_invoke_params_example(self) -> dict[str, Any]:
+        return {
+            "text": "I was charged twice for last month's invoice.",
+            "schema": {
+                "route": ["billing", "support", "sales"],
+                "handoff": ["yes", "no"],
             },
         }
 

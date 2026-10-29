@@ -7,20 +7,24 @@ EXPECTED = [
     "ZeroGPUChatThinkingTool",
     "ZeroGPUReasonTool",
     "ZeroGPUReasonMultilingualTool",
-    "ZeroGPUReasonLongContextTool",
+    "ZeroGPUReasonQwenTool",
     "ZeroGPUReasonGLMTool",
     "ZeroGPUReasonDeepseekTool",
     "ZeroGPUReasonGPTLunaTool",
+    "ZeroGPUReasonGPT6LunaTool",
     "ZeroGPUReasonGPTMiniTool",
     "ZeroGPUReasonGPTNanoTool",
     "ZeroGPUModerateTool",
     "ZeroGPUSummarizeTool",
+    "ZeroGPUSummarize3BTool",
     "ZeroGPUClassifyIABTool",
     "ZeroGPUClassifyIABEnrichedTool",
     "ZeroGPUClassifyDomainTool",
     "ZeroGPUExtractSignalsTool",
+    "ZeroGPUDecideToolsTool",
     "ZeroGPUClassifyZeroShotTool",
     "ZeroGPUClassifyStructuredTool",
+    "ZeroGPUDecideTool",
     "ZeroGPUExtractEntitiesTool",
     "ZeroGPUExtractPIITool",
     "ZeroGPURedactPIITool",
@@ -38,7 +42,7 @@ def test_all_tool_classes_importable() -> None:
     import langchain_zerogpu as pkg
 
     tool_names = [name for name in EXPECTED if name != "ZeroGPUToolkit"]
-    assert len(tool_names) == 22
+    assert len(tool_names) == 26
     for name in tool_names:
         assert hasattr(pkg, name), f"{name} not importable from package root"
 

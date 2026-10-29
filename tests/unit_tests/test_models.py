@@ -13,24 +13,28 @@ EXPECTED_MODELS = {
     "zerogpu_chat_thinking": "LFM2.5-1.2B-Thinking",
     "zerogpu_reason": "gpt-oss-120b",
     "zerogpu_reason_multilingual": "qwen3-30b-a3b-fp8",
-    "zerogpu_reason_long_context": "glm-5.2",
+    "zerogpu_reason_qwen": "qwen3.6-35b-a3b",
     "zerogpu_reason_glm": "glm-5.3-flash",
     "zerogpu_reason_deepseek": "deepseek-v4.1-flash",
     "zerogpu_reason_gpt_luna": "gpt-5.6-luna",
+    "zerogpu_reason_gpt6_luna": "gpt-6-luna",
     "zerogpu_reason_gpt_mini": "gpt-4.1-mini",
     "zerogpu_reason_gpt_nano": "gpt-5.4-nano",
     "zerogpu_moderate": "llama-guard-4-12b",
     "zerogpu_summarize": "llama-3.1-8b-instruct-fast",
+    "zerogpu_summarize_3b": "llama-3.2-3b-instruct-fast",
     "zerogpu_classify_iab": "zlm-v1-iab-classify-edge",
     "zerogpu_classify_iab_enriched": "zlm-v2-iab-classify-edge-enriched",
     "zerogpu_classify_domain": "zlm-v1-iab-domain-classifier",
     "zerogpu_extract_signals": "zlm-v1-signal-extract",
+    "zerogpu_decide_tools": "zlm-v1-tool-decisions",
     "zerogpu_classify_zero_shot": "deberta-v3-small",
-    "zerogpu_classify_structured": "gliner2-base-v1",
-    "zerogpu_extract_entities": "gliner2-base-v1",
-    "zerogpu_extract_pii": "gliner-multi-pii-v1",
-    "zerogpu_redact_pii": "gliner-multi-pii-v1",
-    "zerogpu_extract_json": "gliner2-base-v1",
+    "zerogpu_classify_structured": "gliner2.5-base-v1",
+    "zerogpu_decide": "gliner2.5-decide-v1",
+    "zerogpu_extract_entities": "gliner2.5-base-v1",
+    "zerogpu_extract_pii": "gliner2.5-multi-v1",
+    "zerogpu_redact_pii": "gliner2.5-multi-v1",
+    "zerogpu_extract_json": "gliner2.5-base-v1",
 }
 
 
@@ -51,21 +55,22 @@ def test_model_constants_match_the_api_spec() -> None:
         tools.MODEL_REASON_MULTILINGUAL
         == EXPECTED_MODELS["zerogpu_reason_multilingual"]
     )
-    assert (
-        tools.MODEL_REASON_LONG_CONTEXT
-        == EXPECTED_MODELS["zerogpu_reason_long_context"]
-    )
+    assert tools.MODEL_REASON_QWEN == EXPECTED_MODELS["zerogpu_reason_qwen"]
     assert tools.MODEL_REASON_GLM == EXPECTED_MODELS["zerogpu_reason_glm"]
     assert tools.MODEL_REASON_DEEPSEEK == EXPECTED_MODELS["zerogpu_reason_deepseek"]
     assert tools.MODEL_REASON_GPT_LUNA == EXPECTED_MODELS["zerogpu_reason_gpt_luna"]
+    assert tools.MODEL_REASON_GPT6_LUNA == EXPECTED_MODELS["zerogpu_reason_gpt6_luna"]
     assert tools.MODEL_REASON_GPT_MINI == EXPECTED_MODELS["zerogpu_reason_gpt_mini"]
     assert tools.MODEL_REASON_GPT_NANO == EXPECTED_MODELS["zerogpu_reason_gpt_nano"]
     assert tools.MODEL_MODERATE == EXPECTED_MODELS["zerogpu_moderate"]
     assert tools.MODEL_SUMMARIZE == EXPECTED_MODELS["zerogpu_summarize"]
+    assert tools.MODEL_SUMMARIZE_3B == EXPECTED_MODELS["zerogpu_summarize_3b"]
     assert tools.MODEL_IAB == EXPECTED_MODELS["zerogpu_classify_iab"]
     assert tools.MODEL_IAB_ENRICHED == EXPECTED_MODELS["zerogpu_classify_iab_enriched"]
     assert tools.MODEL_IAB_DOMAIN == EXPECTED_MODELS["zerogpu_classify_domain"]
     assert tools.MODEL_EXTRACT_SIGNALS == EXPECTED_MODELS["zerogpu_extract_signals"]
+    assert tools.MODEL_DECIDE_TOOLS == EXPECTED_MODELS["zerogpu_decide_tools"]
     assert tools.MODEL_ZERO_SHOT == EXPECTED_MODELS["zerogpu_classify_zero_shot"]
     assert tools.MODEL_GLINER == EXPECTED_MODELS["zerogpu_classify_structured"]
+    assert tools.MODEL_DECIDE == EXPECTED_MODELS["zerogpu_decide"]
     assert tools.MODEL_PII == EXPECTED_MODELS["zerogpu_extract_pii"]
